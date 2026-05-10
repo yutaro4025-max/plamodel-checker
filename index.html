@@ -337,10 +337,10 @@ function parseCSV(text, label) {
 
   // ヘッダー解析
   const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
-  const idxJan = findIdx(headers, ['jan','janコード','jan_code','jancode','バーコード']);
+  const idxJan = findIdx(headers, ['jan','janコード','jan_code','jancode','バーコード','jan code']);
   const idxName = findIdx(headers, ['name','商品名','品名','製品名']);
-  const idxBuy = findIdx(headers, ['buy_price','買取価格','買取金額','buy','買取']);
-  const idxRetail = findIdx(headers, ['retail_price','小売価格','定価','小売','retail','希望小売価格']);
+  const idxBuy = findIdx(headers, ['buy_price','買取価格','買取金額','buy','買取','買取上限額','買取上限']);
+  const idxRetail = findIdx(headers, ['retail_price','小売価格','定価','小売','retail','希望小売価格','新品定価(税込)','新品定価','税込定価','メーカー希望小売価格']);
 
   if (idxJan < 0) { alert('JANコードの列が見つかりません。\nヘッダー名: jan または JANコード'); return; }
 
@@ -359,7 +359,8 @@ function parseCSV(text, label) {
   }
 
   document.getElementById('csvStatus').classList.remove('hidden');
-  document.getElementById('csvStatusText').textContent = `${label} — ${count}件 読み込み完了`;
+  const retailInfo = idxRetail >= 0 ? `・定価あり` : `・定価列なし`;
+  document.getElementById('csvStatusText').textContent = `${label} — ${count}件 読み込み完了${retailInfo}`;
 }
 
 function findIdx(headers, candidates) {
