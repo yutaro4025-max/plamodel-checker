@@ -190,14 +190,14 @@
       <span class="card-title">買取価格一覧 CSV</span>
     </div>
     <div class="card-body">
-      <input type="file" id="csvFile" accept=".csv,text/csv,text/plain"
+      <input type="file" id="csvFile" accept=".csv,text/csv,text/plain" multiple
         style="display:none" onchange="loadCSV(this)">
 
       <div id="csvUploadZone" class="upload-zone">
         <div class="upload-icon">📂</div>
         <div class="upload-text">
           <strong>CSVファイルをアップロード</strong><br>
-          ドラッグ＆ドロップ、またはボタンから選択
+          複数ファイルを同時に選択可能
         </div>
       </div>
 
@@ -322,18 +322,31 @@ function triggerFile(e) {
 }
 
 function loadCSV(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => parseCSV(ev.target.result, file.name);
-  reader.onerror = () => alert('ファイルの読み込みに失敗しました');
-  reader.readAsText(file, 'UTF-8');
+  const files = Array.from(input.files);
+  if (!files.length) return;
+  // 複数ファイルを順番に読み込む
+  let loaded = 0;
+  let totalAdded = 0;
+  files.forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const added = parseCSV(ev.target.result, file.name);
+      totalAdded += added;
+      loaded++;
+      if (loaded === files.length) {
+        updateCSVStatus(`${files.length}件のCSV`, totalAdded);
+      }
+    };
+    reader.onerror = () => alert(`${file.name} の読み込みに失敗しました`);
+    reader.readAsText(file, 'UTF-8');
+  });
 }
 
 // 外部ライブラリ不使用の自前CSVパーサー
+// 戻り値：追加/更新した件数
 function parseCSV(text, label) {
   const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n');
-  if (lines.length < 2) { alert('CSVにデータがありません'); return; }
+  if (lines.length < 2) { alert(`${label}：データがありません`); return 0; }
 
   // ヘッダー解析
   const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
@@ -342,25 +355,34 @@ function parseCSV(text, label) {
   const idxBuy = findIdx(headers, ['buy_price','買取価格','買取金額','buy','買取','買取上限額','買取上限']);
   const idxRetail = findIdx(headers, ['retail_price','小売価格','定価','小売','retail','希望小売価格','新品定価(税込)','新品定価','税込定価','メーカー希望小売価格']);
 
-  if (idxJan < 0) { alert('JANコードの列が見つかりません。\nヘッダー名: jan または JANコード'); return; }
+  if (idxJan < 0) { alert(`${label}：JANコードの列が見つかりません`); return 0; }
 
-  db = {};
   let count = 0;
   for (let i = 1; i < lines.length; i++) {
     const cols = splitCSVLine(lines[i]);
     const jan = (cols[idxJan] || '').trim().replace(/[^\d]/g,'');
     if (!jan || jan.length < 8) continue;
-    db[jan] = {
-      name: idxName >= 0 ? (cols[idxName]||'').trim() : jan,
-      buy_price: idxBuy >= 0 ? parseInt((cols[idxBuy]||'').replace(/[^\d]/g,'')) || 0 : 0,
-      retail_price: idxRetail >= 0 ? parseInt((cols[idxRetail]||'').replace(/[^\d]/g,'')) || 0 : 0,
-    };
-    count++;
-  }
 
+    const name = idxName >= 0 ? (cols[idxName]||'').trim() : jan;
+    const buy_price = idxBuy >= 0 ? parseInt((cols[idxBuy]||'').replace(/[^\d]/g,'')) || 0 : 0;
+    const retail_price = idxRetail >= 0 ? parseInt((cols[idxRetail]||'').replace(/[^\d]/g,'')) || 0 : 0;
+
+    // 同一JANが既にある場合は買取価格が高い方を優先（重複対策）
+    if (db[jan]) {
+      if (buy_price > db[jan].buy_price) {
+        db[jan] = { name, buy_price, retail_price };
+      }
+    } else {
+      db[jan] = { name, buy_price, retail_price };
+      count++;
+    }
+  }
+  return count;
+}
+
+function updateCSVStatus(label, count) {
   document.getElementById('csvStatus').classList.remove('hidden');
-  const retailInfo = idxRetail >= 0 ? `・定価あり` : `・定価列なし`;
-  document.getElementById('csvStatusText').textContent = `${label} — ${count}件 読み込み完了${retailInfo}`;
+  document.getElementById('csvStatusText').textContent = `${label} 読み込み完了 — 合計 ${Object.keys(db).length} 件`;
 }
 
 function findIdx(headers, candidates) {
