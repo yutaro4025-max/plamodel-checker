@@ -287,7 +287,13 @@
     <div class="card-header">
       <span class="card-icon">🕘</span>
       <span class="card-title">スキャン履歴</span>
-      <button class="btn btn-ghost" style="margin-left:auto;padding:6px 12px;font-size:11px;" onclick="clearHistory()">クリア</button>
+      <div style="margin-left:auto;display:flex;gap:6px;">
+        <button class="btn btn-ghost" id="reloadBtn" style="padding:6px 10px;font-size:11px;" onclick="reloadAllHistory()" title="CSV入れ替え後に一括再照合">🔄 再照合</button>
+        <button class="btn btn-ghost" style="padding:6px 10px;font-size:11px;" onclick="clearHistory()">🗑 クリア</button>
+      </div>
+    </div>
+    <div id="reloadNotice" class="hidden" style="padding:10px 14px;background:rgba(0,229,255,0.06);border-bottom:1px solid var(--border);font-size:12px;color:var(--accent);">
+      📋 CSVが更新されました。「🔄 再照合」で履歴を最新の価格に更新できます。
     </div>
     <div class="card-body" style="padding:10px 12px;" id="historyList">
       <div class="history-empty">まだスキャン履歴がありません</div>
@@ -383,6 +389,10 @@ function parseCSV(text, label) {
 function updateCSVStatus(label, count) {
   document.getElementById('csvStatus').classList.remove('hidden');
   document.getElementById('csvStatusText').textContent = `${label} 読み込み完了 — 合計 ${Object.keys(db).length} 件`;
+  // 履歴があれば再照合通知を表示
+  if (history.length > 0) {
+    document.getElementById('reloadNotice').classList.remove('hidden');
+  }
 }
 
 function findIdx(headers, candidates) {
@@ -595,6 +605,36 @@ function addHistory(entry) {
   if (history.length > 50) history = history.slice(0, 50);
   try { localStorage.setItem('plamodel_history', JSON.stringify(history)); } catch(e) {}
   renderHistory();
+}
+
+// CSV入れ替え後に履歴全件を現在のDBで再照合
+function reloadAllHistory() {
+  if (!history.length) return;
+  if (!Object.keys(db).length) { alert('先にCSVを読み込んでください'); return; }
+
+  let updated = 0;
+  history = history.map(h => {
+    if (!db[h.jan]) return { ...h, statusKey: 'notfound', name: h.name || h.jan, buy_price: 0, retail_price: 0 };
+    const { name, buy_price, retail_price } = db[h.jan];
+    const hasBoth = buy_price > 0 && retail_price > 0;
+    const ratio = hasBoth ? buy_price / retail_price : null;
+    let statusKey;
+    if (!hasBoth) statusKey = 'hold';
+    else if (ratio >= 0.70) statusKey = 'strong-sell';
+    else if (ratio >= 0.40) statusKey = 'sell-now';
+    else statusKey = 'hold';
+    updated++;
+    return { ...h, name, buy_price, retail_price, statusKey, ts: h.ts };
+  });
+
+  try { localStorage.setItem('plamodel_history', JSON.stringify(history)); } catch(e) {}
+  document.getElementById('reloadNotice').classList.add('hidden');
+  renderHistory();
+
+  // フラッシュ通知
+  const btn = document.getElementById('reloadBtn');
+  btn.textContent = `✅ ${updated}件 更新`;
+  setTimeout(() => { btn.textContent = '🔄 再照合'; }, 2000);
 }
 
 function renderHistory() {
