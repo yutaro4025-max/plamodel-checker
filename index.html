@@ -131,12 +131,18 @@
   .price-unit { font-size: 13px; opacity: 0.7; }
 
   .status-banner { border-radius: 10px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
-  .status-banner.sell-now { background: rgba(0,255,157,0.08); border: 1px solid rgba(0,255,157,0.3); }
-  .status-banner.hold { background: rgba(255,214,0,0.08); border: 1px solid rgba(255,214,0,0.3); }
-  .status-banner.strong-sell { background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.4); }
+  .status-banner.strong-sell { background: rgba(255,61,113,0.10); border: 1px solid rgba(255,61,113,0.4); }
+  .status-banner.sell      { background: rgba(255,107,53,0.10); border: 1px solid rgba(255,107,53,0.4); }
+  .status-banner.consider  { background: rgba(0,255,157,0.08); border: 1px solid rgba(0,255,157,0.3); }
+  .status-banner.watch     { background: rgba(0,229,255,0.07); border: 1px solid rgba(0,229,255,0.25); }
+  .status-banner.hold      { background: rgba(255,214,0,0.08); border: 1px solid rgba(255,214,0,0.3); }
   .status-emoji { font-size: 28px; }
   .status-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
-  .status-label.sell-now{color:var(--sell)} .status-label.hold{color:var(--hold)} .status-label.strong-sell{color:var(--accent2)}
+  .status-label.strong-sell { color:#ff3d71; }
+  .status-label.sell        { color:var(--accent2); }
+  .status-label.consider    { color:var(--sell); }
+  .status-label.watch       { color:var(--accent); }
+  .status-label.hold        { color:var(--hold); }
   .status-desc { font-size: 13px; color: var(--text); font-weight: 700; }
 
   .ratio-section { margin-top: 16px; }
@@ -157,8 +163,12 @@
   }
   .history-item:active { border-color: var(--border); }
   .history-badge { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .history-badge.sell{background:var(--sell)} .history-badge.hold{background:var(--hold)}
-  .history-badge.strong-sell{background:var(--accent2)} .history-badge.notfound{background:var(--muted)}
+  .history-badge.strong-sell { background:#ff3d71; }
+  .history-badge.sell        { background:var(--accent2); }
+  .history-badge.consider    { background:var(--sell); }
+  .history-badge.watch       { background:var(--accent); }
+  .history-badge.hold        { background:var(--hold); }
+  .history-badge.notfound    { background:var(--muted); }
   .history-name { flex:1; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .history-price { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); flex-shrink:0; }
   .history-empty { text-align:center; color:var(--muted); font-size:13px; padding:16px; }
@@ -544,19 +554,29 @@ function lookup(jan) {
   const hasBoth = buy_price > 0 && retail_price > 0;
   const ratio = hasBoth ? buy_price / retail_price : null;
 
-  let statusKey, emoji, statusEn, statusJa;
+  let statusKey, emoji, statusJa;
   if (!hasBoth) {
-    statusKey = 'hold'; emoji = '📦'; statusEn = 'INFO'; statusJa = '価格情報が不完全です';
-  } else if (ratio >= 0.70) {
-    statusKey = 'strong-sell'; emoji = '🔥'; statusEn = 'STRONG BUY'; statusJa = `買取強くオススメ（小売の ${Math.round(ratio*100)}%）`;
-  } else if (ratio >= 0.40) {
-    statusKey = 'sell-now'; emoji = '✅'; statusEn = 'RECOMMENDED'; statusJa = `買取オススメ（小売の ${Math.round(ratio*100)}%）`;
+    statusKey = 'hold'; emoji = '📦'; statusJa = '価格情報が不完全です';
+  } else if (ratio >= 2.0) {
+    statusKey = 'strong-sell'; emoji = '🔥'; statusJa = `買取強推奨（小売の ${Math.round(ratio*100)}%）`;
+  } else if (ratio >= 1.5) {
+    statusKey = 'sell';     emoji = '⚡'; statusJa = `買取推奨（小売の ${Math.round(ratio*100)}%）`;
+  } else if (ratio >= 1.0) {
+    statusKey = 'consider'; emoji = '✅'; statusJa = `買取検討（小売の ${Math.round(ratio*100)}%）`;
+  } else if (ratio >= 0.8) {
+    statusKey = 'watch';    emoji = '🟡'; statusJa = `様子見（小売の ${Math.round(ratio*100)}%）`;
   } else {
-    statusKey = 'hold'; emoji = '⏸'; statusEn = 'ON HOLD'; statusJa = `保留推奨（小売の ${Math.round(ratio*100)}%）`;
+    statusKey = 'hold';     emoji = '⏸'; statusJa = `保留推奨（小売の ${Math.round(ratio*100)}%）`;
   }
 
-  const barW = ratio ? Math.min(100, Math.round(ratio * 100)) : 0;
-  const barC = statusKey === 'strong-sell' ? 'var(--accent2)' : statusKey === 'sell-now' ? 'var(--sell)' : 'var(--hold)';
+  const statusLabel = { 'strong-sell':'買取強推奨', sell:'買取推奨', consider:'買取検討', watch:'様子見', hold:'保留推奨' };
+  // バーは200%上限で表示
+  const barW = ratio ? Math.min(100, Math.round(ratio * 50)) : 0; // 200%=100%幅
+  const barC = statusKey === 'strong-sell' ? '#ff3d71'
+             : statusKey === 'sell'        ? 'var(--accent2)'
+             : statusKey === 'consider'    ? 'var(--sell)'
+             : statusKey === 'watch'       ? 'var(--accent)'
+             : 'var(--hold)';
 
   body.innerHTML = `
     <div class="result-name">${esc(name)}</div>
@@ -574,7 +594,7 @@ function lookup(jan) {
     <div class="status-banner ${statusKey}">
       <div class="status-emoji">${emoji}</div>
       <div>
-        <div class="status-label ${statusKey}">${statusEn}</div>
+        <div class="status-label ${statusKey}">${statusLabel[statusKey] || ''}</div>
         <div class="status-desc">${statusJa}</div>
       </div>
     </div>
@@ -619,10 +639,12 @@ function reloadAllHistory() {
     const hasBoth = buy_price > 0 && retail_price > 0;
     const ratio = hasBoth ? buy_price / retail_price : null;
     let statusKey;
-    if (!hasBoth) statusKey = 'hold';
-    else if (ratio >= 0.70) statusKey = 'strong-sell';
-    else if (ratio >= 0.40) statusKey = 'sell-now';
-    else statusKey = 'hold';
+    if (!hasBoth)       statusKey = 'hold';
+    else if (ratio >= 2.0) statusKey = 'strong-sell';
+    else if (ratio >= 1.5) statusKey = 'sell';
+    else if (ratio >= 1.0) statusKey = 'consider';
+    else if (ratio >= 0.8) statusKey = 'watch';
+    else                   statusKey = 'hold';
     updated++;
     return { ...h, name, buy_price, retail_price, statusKey, ts: h.ts };
   });
