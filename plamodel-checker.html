@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a0f">
+<title>プラモ買取チェッカー</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+JP:wght@300;400;700&family=JetBrains+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3f;
+    --accent: #00e5ff;
+    --accent2: #ff6b35;
+    --sell: #00ff9d;
+    --hold: #ffd600;
+    --danger: #ff3d71;
+    --text: #e8e8f0;
+    --muted: #6b6b8a;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans JP', sans-serif, system-ui;
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+
+  header {
+    padding: 20px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(180deg, #0d0d18 0%, var(--bg) 100%);
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px; letter-spacing: 3px;
+    background: linear-gradient(90deg, var(--accent), #7b61ff);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .header-sub { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; margin-top: 2px; }
+
+  main { padding: 20px; max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .card-header { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--surface2); }
+  .card-icon { font-size: 18px; }
+  .card-title { font-size: 13px; font-weight: 700; letter-spacing: 1px; color: var(--accent); text-transform: uppercase; }
+  .card-body { padding: 18px; }
+
+  /* CSV */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px; padding: 24px 20px; text-align: center; transition: all 0.2s;
+  }
+  .upload-zone.drag-over { border-color: var(--accent); background: rgba(0,229,255,0.04); }
+  .upload-icon { font-size: 32px; margin-bottom: 10px; }
+  .upload-text { font-size: 14px; color: var(--muted); line-height: 1.6; }
+  .upload-text strong { color: var(--text); }
+  .csv-format {
+    margin-top: 14px; background: var(--surface2); border-radius: 8px;
+    padding: 12px 14px; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: var(--muted); line-height: 1.8;
+  }
+  .csv-format .comment { color: #3a3a5a; }
+  .csv-status {
+    display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+    background: rgba(0,255,157,0.06); border: 1px solid rgba(0,255,157,0.2);
+    border-radius: 8px; font-size: 13px;
+  }
+  .csv-status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--sell); box-shadow: 0 0 8px var(--sell); flex-shrink: 0; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px; padding: 12px 18px;
+    border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;
+    border: none; transition: all 0.2s; font-family: inherit;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:active { border-color: var(--accent); color: var(--accent); }
+  .btn-primary { background: var(--accent); color: #000; }
+  .btn-primary:active { opacity: 0.8; }
+  .btn-full { width: 100%; justify-content: center; }
+
+  /* Scanner */
+  .scanner-wrap { position: relative; background: #000; border-radius: 10px; overflow: hidden; aspect-ratio: 4/3; }
+  #video { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .scanner-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .scan-frame { width: 70%; height: 40%; border: 2px solid var(--accent); border-radius: 8px; position: relative; box-shadow: 0 0 0 9999px rgba(0,0,0,0.45); }
+  .scan-line { position: absolute; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); animation: scanAnim 2s ease-in-out infinite; }
+  @keyframes scanAnim { 0%,100%{top:10%;opacity:0} 10%{opacity:1} 50%{top:88%;opacity:1} 90%{opacity:1} }
+  .scan-corner { position: absolute; width: 16px; height: 16px; border-color: var(--accent); border-style: solid; }
+  .scan-corner.tl{top:-2px;left:-2px;border-width:3px 0 0 3px}
+  .scan-corner.tr{top:-2px;right:-2px;border-width:3px 3px 0 0}
+  .scan-corner.bl{bottom:-2px;left:-2px;border-width:0 0 3px 3px}
+  .scan-corner.br{bottom:-2px;right:-2px;border-width:0 3px 3px 0}
+  .scan-hint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  .scan-controls { display: flex; gap: 8px; margin-bottom: 14px; }
+  .tab-btn {
+    flex: 1; padding: 11px; border-radius: 8px; font-size: 13px; font-weight: 700;
+    cursor: pointer; border: 1px solid var(--border); background: transparent;
+    color: var(--muted); font-family: inherit; transition: all 0.2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .tab-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+  .jan-input {
+    flex: 1; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 13px 14px; font-family: 'JetBrains Mono', monospace; font-size: 16px;
+    color: var(--text); outline: none; transition: border-color 0.2s;
+  }
+  .jan-input:focus { border-color: var(--accent); }
+  .jan-input::placeholder { color: var(--muted); font-size: 12px; font-family: inherit; }
+
+  /* Result */
+  .result-name { font-size: 17px; font-weight: 700; margin-bottom: 4px; line-height: 1.4; }
+  .result-jan { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 18px; }
+  .price-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .price-box { background: var(--surface2); border-radius: 10px; padding: 14px; border: 1px solid var(--border); }
+  .price-label { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 6px; }
+  .price-value { font-family: 'Bebas Neue', sans-serif; font-size: 30px; letter-spacing: 1px; }
+  .price-value.buy { color: var(--accent2); }
+  .price-value.retail { color: var(--accent); }
+  .price-unit { font-size: 13px; opacity: 0.7; }
+
+  .status-banner { border-radius: 10px; padding: 16px 18px; display: flex; align-items: center; gap: 14px; }
+  .status-banner.sell-now { background: rgba(0,255,157,0.08); border: 1px solid rgba(0,255,157,0.3); }
+  .status-banner.hold { background: rgba(255,214,0,0.08); border: 1px solid rgba(255,214,0,0.3); }
+  .status-banner.strong-sell { background: rgba(255,107,53,0.1); border: 1px solid rgba(255,107,53,0.4); }
+  .status-emoji { font-size: 28px; }
+  .status-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+  .status-label.sell-now{color:var(--sell)} .status-label.hold{color:var(--hold)} .status-label.strong-sell{color:var(--accent2)}
+  .status-desc { font-size: 13px; color: var(--text); font-weight: 700; }
+
+  .ratio-section { margin-top: 16px; }
+  .ratio-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+  .ratio-bar-bg { height: 6px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+  .ratio-bar-fill { height: 100%; border-radius: 99px; transition: width 0.6s cubic-bezier(.23,1,.32,1); }
+
+  .not-found { text-align: center; padding: 24px; color: var(--muted); }
+  .not-found .nf-code { font-family: 'JetBrains Mono', monospace; font-size: 20px; color: var(--danger); margin-bottom: 8px; }
+  .not-found .nf-text { font-size: 13px; }
+
+  /* History */
+  .history-item {
+    display: flex; align-items: center; gap: 12px; padding: 11px 12px;
+    background: var(--surface2); border-radius: 8px; cursor: pointer;
+    border: 1px solid transparent; margin-bottom: 8px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .history-item:active { border-color: var(--border); }
+  .history-badge { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .history-badge.sell{background:var(--sell)} .history-badge.hold{background:var(--hold)}
+  .history-badge.strong-sell{background:var(--accent2)} .history-badge.notfound{background:var(--muted)}
+  .history-name { flex:1; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .history-price { font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--muted); flex-shrink:0; }
+  .history-empty { text-align:center; color:var(--muted); font-size:13px; padding:16px; }
+
+  /* Notice box */
+  .notice {
+    padding: 12px 14px; border-radius: 8px; font-size: 12px; line-height: 1.6;
+    background: rgba(255,214,0,0.07); border: 1px solid rgba(255,214,0,0.25); color: var(--hold);
+    margin-bottom: 14px;
+  }
+
+  .hidden { display: none !important; }
+  footer { padding: 20px; text-align: center; font-size: 11px; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">PLAMODEL CHECKER</div>
+  <div class="header-sub">プラモデル買取価格チェッカー</div>
+</header>
+
+<main>
+
+  <!-- CSV -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">📋</span>
+      <span class="card-title">買取価格一覧 CSV</span>
+    </div>
+    <div class="card-body">
+      <input type="file" id="csvFile" accept=".csv,text/csv,text/plain"
+        style="display:none" onchange="loadCSV(this)">
+
+      <div id="csvUploadZone" class="upload-zone">
+        <div class="upload-icon">📂</div>
+        <div class="upload-text">
+          <strong>CSVファイルをアップロード</strong><br>
+          ドラッグ＆ドロップ、またはボタンから選択
+        </div>
+      </div>
+
+      <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary btn-full" ontouchend="triggerFile(event)" onclick="triggerFile(event)">
+          📂 CSVファイルを選択
+        </button>
+        <button class="btn btn-ghost btn-full" onclick="loadSampleCSV()">
+          📦 サンプルCSVで試す
+        </button>
+      </div>
+
+      <div id="csvStatus" class="hidden" style="margin-top:12px;">
+        <div class="csv-status">
+          <div class="dot"></div>
+          <span id="csvStatusText"></span>
+        </div>
+      </div>
+
+      <div class="csv-format" style="margin-top:14px;">
+        <span class="comment"># CSVフォーマット（1行目ヘッダー）</span><br>
+        jan,name,buy_price,retail_price<br>
+        4573102576651,RG νガンダム,3500,7700
+      </div>
+    </div>
+  </div>
+
+  <!-- Scanner -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">📷</span>
+      <span class="card-title">バーコード読み取り</span>
+    </div>
+    <div class="card-body">
+      <div class="scan-controls">
+        <button class="tab-btn active" id="tabCamera" onclick="switchTab('camera')">📷 カメラ</button>
+        <button class="tab-btn" id="tabManual" onclick="switchTab('manual')">⌨️ 手入力</button>
+      </div>
+
+      <div id="cameraSection">
+        <div id="barcodeNotice" class="notice hidden">
+          ⚠️ お使いのブラウザはバーコード読み取りに非対応です。<br>
+          <strong>Chrome（Android）</strong> または <strong>Safari（iOS 17以降）</strong> をお試しください。手入力モードは利用可能です。
+        </div>
+        <div class="scanner-wrap" id="scannerWrap">
+          <video id="video" playsinline muted autoplay></video>
+          <div class="scanner-overlay">
+            <div class="scan-frame">
+              <div class="scan-line"></div>
+              <div class="scan-corner tl"></div>
+              <div class="scan-corner tr"></div>
+              <div class="scan-corner bl"></div>
+              <div class="scan-corner br"></div>
+            </div>
+          </div>
+        </div>
+        <p class="scan-hint">バーコードを枠内に合わせてください</p>
+        <div style="margin-top:12px;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-full" id="startBtn" onclick="startCamera()">📷 カメラ起動</button>
+          <button class="btn btn-ghost hidden" id="stopBtn" onclick="stopCamera()">⏹ 停止</button>
+        </div>
+      </div>
+
+      <div id="manualSection" class="hidden">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">JANコード（13桁）を入力</div>
+        <div style="display:flex;gap:8px;">
+          <input class="jan-input" id="janInput" type="tel" inputmode="numeric"
+            placeholder="例: 4573102576651" maxlength="14"
+            onkeydown="if(event.key==='Enter')lookupManual()">
+          <button class="btn btn-primary" onclick="lookupManual()">検索</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="card hidden" id="resultCard">
+    <div class="card-header">
+      <span class="card-icon">💡</span>
+      <span class="card-title">照合結果</span>
+    </div>
+    <div class="card-body" id="resultBody"></div>
+  </div>
+
+  <!-- History -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-icon">🕘</span>
+      <span class="card-title">スキャン履歴</span>
+      <button class="btn btn-ghost" style="margin-left:auto;padding:6px 12px;font-size:11px;" onclick="clearHistory()">クリア</button>
+    </div>
+    <div class="card-body" style="padding:10px 12px;" id="historyList">
+      <div class="history-empty">まだスキャン履歴がありません</div>
+    </div>
+  </div>
+
+</main>
+<footer>オフライン対応 · 外部通信なし · データはデバイスのみに保存</footer>
+
+<script>
+// ─── CSV ──────────────────────────────────────────────────
+let db = {};
+
+const SAMPLE = `jan,name,buy_price,retail_price
+4573102576651,RG 1/144 νガンダム,3500,7700
+4573102615091,MG 1/100 フルアーマーユニコーンガンダム Ver.Ka,5800,13200
+4573102592408,HG 1/144 ガンダムエアリアル,880,1980
+4549660414292,MG 1/100 ダブルゼータガンダム Ver.Ka,4200,9900
+4573102604728,RG 1/144 ダブルオークアンタ フルセイバー,2200,4400
+4573102561572,PG UNLEASHED 1/60 RX-78-2 ガンダム,18000,38500
+4573102625397,MG 1/100 ゴッドガンダム Ver.2.0,3200,6600
+4573102625045,HG 1/144 ガンダムキャリバーン,1100,2200
+4573102647337,MGEX 1/100 ユニコーンガンダム,9800,22000
+4573102648426,RG 1/144 エヴァンゲリオン初号機,1800,3850`;
+
+function loadSampleCSV() { parseCSV(SAMPLE, 'サンプルデータ（10件）'); }
+
+function triggerFile(e) {
+  e.preventDefault();
+  e.stopPropagation();
+  document.getElementById('csvFile').click();
+}
+
+function loadCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => parseCSV(ev.target.result, file.name);
+  reader.onerror = () => alert('ファイルの読み込みに失敗しました');
+  reader.readAsText(file, 'UTF-8');
+}
+
+// 外部ライブラリ不使用の自前CSVパーサー
+function parseCSV(text, label) {
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim().split('\n');
+  if (lines.length < 2) { alert('CSVにデータがありません'); return; }
+
+  // ヘッダー解析
+  const headers = splitCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+  const idxJan = findIdx(headers, ['jan','janコード','jan_code','jancode','バーコード']);
+  const idxName = findIdx(headers, ['name','商品名','品名','製品名']);
+  const idxBuy = findIdx(headers, ['buy_price','買取価格','買取金額','buy','買取']);
+  const idxRetail = findIdx(headers, ['retail_price','小売価格','定価','小売','retail','希望小売価格']);
+
+  if (idxJan < 0) { alert('JANコードの列が見つかりません。\nヘッダー名: jan または JANコード'); return; }
+
+  db = {};
+  let count = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const cols = splitCSVLine(lines[i]);
+    const jan = (cols[idxJan] || '').trim().replace(/[^\d]/g,'');
+    if (!jan || jan.length < 8) continue;
+    db[jan] = {
+      name: idxName >= 0 ? (cols[idxName]||'').trim() : jan,
+      buy_price: idxBuy >= 0 ? parseInt((cols[idxBuy]||'').replace(/[^\d]/g,'')) || 0 : 0,
+      retail_price: idxRetail >= 0 ? parseInt((cols[idxRetail]||'').replace(/[^\d]/g,'')) || 0 : 0,
+    };
+    count++;
+  }
+
+  document.getElementById('csvStatus').classList.remove('hidden');
+  document.getElementById('csvStatusText').textContent = `${label} — ${count}件 読み込み完了`;
+}
+
+function findIdx(headers, candidates) {
+  for (const c of candidates) {
+    const i = headers.indexOf(c);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+
+function splitCSVLine(line) {
+  const result = [];
+  let cur = '', inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { result.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  result.push(cur);
+  return result;
+}
+
+// ─── DRAG & DROP ─────────────────────────────────────────
+const zone = document.getElementById('csvUploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => parseCSV(ev.target.result, file.name);
+  reader.readAsText(file, 'UTF-8');
+});
+
+// ─── TAB ────────────────────────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tabCamera').classList.toggle('active', tab === 'camera');
+  document.getElementById('tabManual').classList.toggle('active', tab === 'manual');
+  document.getElementById('cameraSection').classList.toggle('hidden', tab !== 'camera');
+  document.getElementById('manualSection').classList.toggle('hidden', tab !== 'manual');
+  if (tab !== 'camera') stopCamera();
+}
+
+// ─── CAMERA + BarcodeDetector API ───────────────────────
+let stream = null;
+let detecting = false;
+let detectTimer = null;
+
+async function startCamera() {
+  // BarcodeDetector 対応チェック
+  if (!('BarcodeDetector' in window)) {
+    document.getElementById('barcodeNotice').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+    });
+    const video = document.getElementById('video');
+    video.srcObject = stream;
+    await video.play();
+
+    detecting = true;
+    document.getElementById('startBtn').classList.add('hidden');
+    document.getElementById('stopBtn').classList.remove('hidden');
+
+    const detector = new BarcodeDetector({ formats: ['ean_13', 'ean_8', 'code_128', 'upc_a'] });
+    detectLoop(video, detector);
+  } catch (e) {
+    console.error(e);
+    if (e.name === 'NotAllowedError') {
+      alert('カメラのアクセスが許可されていません。\nブラウザの設定でカメラを許可してください。');
+    } else {
+      alert('カメラの起動に失敗しました: ' + e.message);
+    }
+  }
+}
+
+async function detectLoop(video, detector) {
+  if (!detecting) return;
+  try {
+    const barcodes = await detector.detect(video);
+    if (barcodes.length > 0) {
+      const code = barcodes[0].rawValue.replace(/[^\d]/g, '');
+      if (code.length >= 8) {
+        flashFrame();
+        lookup(code);
+        // 連続誤検知防止：1.5秒後に再開
+        detecting = false;
+        setTimeout(() => { detecting = true; detectLoop(video, detector); }, 1500);
+        return;
+      }
+    }
+  } catch(e) { /* 検出失敗は無視 */ }
+  detectTimer = requestAnimationFrame(() => detectLoop(video, detector));
+}
+
+function stopCamera() {
+  detecting = false;
+  if (detectTimer) { cancelAnimationFrame(detectTimer); detectTimer = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  const v = document.getElementById('video');
+  v.srcObject = null;
+  document.getElementById('startBtn').classList.remove('hidden');
+  document.getElementById('stopBtn').classList.add('hidden');
+}
+
+function flashFrame() {
+  const el = document.getElementById('scannerWrap');
+  el.style.outline = '3px solid var(--sell)';
+  setTimeout(() => el.style.outline = '', 500);
+}
+
+// ─── MANUAL ─────────────────────────────────────────────
+function lookupManual() {
+  const val = document.getElementById('janInput').value.trim().replace(/[^\d]/g, '');
+  if (!val) return;
+  lookup(val);
+}
+
+// ─── LOOKUP ──────────────────────────────────────────────
+let lastCode = '';
+let lastTs = 0;
+
+function lookup(jan) {
+  const now = Date.now();
+  if (jan === lastCode && now - lastTs < 2000) return;
+  lastCode = jan; lastTs = now;
+
+  const card = document.getElementById('resultCard');
+  const body = document.getElementById('resultBody');
+  card.classList.remove('hidden');
+
+  if (!db[jan]) {
+    body.innerHTML = `
+      <div class="not-found">
+        <div class="nf-code">${jan}</div>
+        <div class="nf-text">買取一覧に登録されていません</div>
+      </div>`;
+    addHistory({ jan, statusKey: 'notfound' });
+    scrollToResult();
+    return;
+  }
+
+  const { name, buy_price, retail_price } = db[jan];
+  const hasBoth = buy_price > 0 && retail_price > 0;
+  const ratio = hasBoth ? buy_price / retail_price : null;
+
+  let statusKey, emoji, statusEn, statusJa;
+  if (!hasBoth) {
+    statusKey = 'hold'; emoji = '📦'; statusEn = 'INFO'; statusJa = '価格情報が不完全です';
+  } else if (ratio >= 0.70) {
+    statusKey = 'strong-sell'; emoji = '🔥'; statusEn = 'STRONG BUY'; statusJa = `買取強くオススメ（小売の ${Math.round(ratio*100)}%）`;
+  } else if (ratio >= 0.40) {
+    statusKey = 'sell-now'; emoji = '✅'; statusEn = 'RECOMMENDED'; statusJa = `買取オススメ（小売の ${Math.round(ratio*100)}%）`;
+  } else {
+    statusKey = 'hold'; emoji = '⏸'; statusEn = 'ON HOLD'; statusJa = `保留推奨（小売の ${Math.round(ratio*100)}%）`;
+  }
+
+  const barW = ratio ? Math.min(100, Math.round(ratio * 100)) : 0;
+  const barC = statusKey === 'strong-sell' ? 'var(--accent2)' : statusKey === 'sell-now' ? 'var(--sell)' : 'var(--hold)';
+
+  body.innerHTML = `
+    <div class="result-name">${esc(name)}</div>
+    <div class="result-jan">JAN: ${jan}</div>
+    <div class="price-grid">
+      <div class="price-box">
+        <div class="price-label">買取価格</div>
+        <div class="price-value buy">${buy_price > 0 ? buy_price.toLocaleString() : '—'}<span class="price-unit">${buy_price > 0 ? '円' : ''}</span></div>
+      </div>
+      <div class="price-box">
+        <div class="price-label">小売価格</div>
+        <div class="price-value retail">${retail_price > 0 ? retail_price.toLocaleString() : '—'}<span class="price-unit">${retail_price > 0 ? '円' : ''}</span></div>
+      </div>
+    </div>
+    <div class="status-banner ${statusKey}">
+      <div class="status-emoji">${emoji}</div>
+      <div>
+        <div class="status-label ${statusKey}">${statusEn}</div>
+        <div class="status-desc">${statusJa}</div>
+      </div>
+    </div>
+    ${hasBoth ? `
+    <div class="ratio-section">
+      <div class="ratio-label"><span>買取率</span><span style="color:${barC};font-weight:700">${Math.round(ratio*100)}%</span></div>
+      <div class="ratio-bar-bg"><div class="ratio-bar-fill" style="width:${barW}%;background:${barC}"></div></div>
+    </div>` : ''}
+  `;
+
+  addHistory({ jan, name, buy_price, retail_price, statusKey });
+  scrollToResult();
+}
+
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function scrollToResult() {
+  setTimeout(() => document.getElementById('resultCard').scrollIntoView({ behavior:'smooth', block:'start' }), 80);
+}
+
+// ─── HISTORY ─────────────────────────────────────────────
+let history = [];
+try { history = JSON.parse(localStorage.getItem('plamodel_history') || '[]'); } catch(e) {}
+
+function addHistory(entry) {
+  // 同一JANの直前エントリがあれば先頭に移動のみ
+  history = history.filter(h => h.jan !== entry.jan);
+  history.unshift({ ...entry, ts: Date.now() });
+  if (history.length > 50) history = history.slice(0, 50);
+  try { localStorage.setItem('plamodel_history', JSON.stringify(history)); } catch(e) {}
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  if (!history.length) { el.innerHTML = '<div class="history-empty">まだスキャン履歴がありません</div>'; return; }
+  el.innerHTML = history.map(h => `
+    <div class="history-item" onclick="lookup('${h.jan}')">
+      <div class="history-badge ${h.statusKey || 'notfound'}"></div>
+      <div class="history-name">${esc(h.name || h.jan)}</div>
+      <div class="history-price">${h.buy_price ? h.buy_price.toLocaleString()+'円' : '未登録'}</div>
+    </div>`).join('');
+}
+
+function clearHistory() {
+  history = [];
+  try { localStorage.removeItem('plamodel_history'); } catch(e) {}
+  renderHistory();
+}
+
+// ─── INIT ────────────────────────────────────────────────
+renderHistory();
+
+// BarcodeDetector非対応の場合は事前に通知
+if (!('BarcodeDetector' in window)) {
+  document.getElementById('barcodeNotice').classList.remove('hidden');
+}
+</script>
+</body>
+</html>
