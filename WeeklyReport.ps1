@@ -13,11 +13,13 @@ Add-Type -AssemblyName System.Windows.Forms
 # =============================================================================
 # CONFIG：環境に合わせて変更する箇所
 # =============================================================================
-$ONEDRIVE_LOG_DIR  = "$env:USERPROFILE\OneDrive\AttendanceLogs"
+# $env:OneDrive を使うことで "OneDrive" / "OneDrive - Honda" 等のフォルダ名差異を吸収する。
+# Script-A / Script-B と必ず同じ値になる。
+$ONEDRIVE_LOG_DIR  = "$env:OneDrive\AttendanceLogs"
 $LOCAL_LOG_DIR     = "$PSScriptRoot\logs"
 $LOG_FILENAME      = "attendance_log.csv"
-$REPORT_DIR        = "$env:USERPROFILE\OneDrive\AttendanceLogs\WeeklyReports"
-$OUTLOOK_WAIT_SEC  = 15   # Outlook起動待機秒数
+$REPORT_DIR        = "$env:OneDrive\AttendanceLogs\WeeklyReports"
+$OUTLOOK_WAIT_SEC  = 30   # Outlook起動待機秒数
 
 # --- Outlookカテゴリ名（実環境に合わせて変更）---
 $CAT_PACKAGING     = "荷姿設定"

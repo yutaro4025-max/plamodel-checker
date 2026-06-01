@@ -13,13 +13,15 @@ Add-Type -AssemblyName System.Windows.Forms
 # =============================================================================
 # CONFIG：環境に合わせて変更する箇所
 # =============================================================================
-# Fix(Bug3): $env:OneDrive を使うことで "OneDrive" / "OneDrive - Honda" 等の
-#            フォルダ名差異を吸収する。Script-B と必ず同じ値にすること。
-$ONEDRIVE_LOG_DIR  = "$env:OneDrive\AttendanceLogs"
-$LOCAL_LOG_DIR     = "$PSScriptRoot\logs"
-$SCRIPT_B_PATH     = "$PSScriptRoot\Script-B_Notify.ps1"
-$TASK_NAME         = "AttendanceNotify_$(Get-Date -Format 'yyyyMMdd')"
-$LOG_FILENAME      = "attendance_log.csv"
+# $env:OneDrive を使うことで "OneDrive" / "OneDrive - Honda" 等の
+# フォルダ名差異を吸収する。Script-B / WeeklyReport と必ず同じ値にすること。
+$ONEDRIVE_LOG_DIR      = "$env:OneDrive\AttendanceLogs"
+$LOCAL_LOG_DIR         = "$PSScriptRoot\logs"
+$SCRIPT_B_PATH         = "$PSScriptRoot\Script-B_Notify.ps1"
+$WEEKLY_REPORT_PATH    = "$PSScriptRoot\WeeklyReport.ps1"
+$TASK_NAME             = "AttendanceNotify_$(Get-Date -Format 'yyyyMMdd')"
+$TASK_NAME_WEEKLY      = "WeeklyReport_$(Get-Date -Format 'yyyyMMdd')"
+$LOG_FILENAME          = "attendance_log.csv"
 # =============================================================================
 
 # --- ログ関数 -----------------------------------------------------------------
@@ -28,8 +30,6 @@ function Write-Log {
     $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
     $line = "[$timestamp][$Level] $Message"
     Write-Host $line
-    # Fix(Bug1): Write-Log はメイン try より先に呼ばれる可能性があるため
-    #            ここでもディレクトリを保証する（Script-B と同じ実装に統一）
     if (-not (Test-Path $LOCAL_LOG_DIR)) {
         New-Item -ItemType Directory -Path $LOCAL_LOG_DIR -Force | Out-Null
     }
@@ -99,20 +99,17 @@ function Register-NotifyTask {
     param(
         [string]$TaskName,
         [datetime]$NotifyTime,
-        [string]$ScriptBPath
+        [string]$ScriptPath        # Script-B / WeeklyReport 両方に対応するため汎用名に変更
     )
 
-    # 既存の同名タスクがあれば削除
-    # Fix(Bug2): schtasks CLI は PowerShell がスペース含み変数を複数引数に分割して
-    #            渡すため /TR の値が壊れる。Register-ScheduledTask に置き換えて解消。
     if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) {
         Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
-        Write-Log "既存の通知タスクを削除しました: $TaskName"
+        Write-Log "既存のタスクを削除しました: $TaskName"
     }
 
     $action   = New-ScheduledTaskAction `
                     -Execute  "powershell.exe" `
-                    -Argument "-ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File `"$ScriptBPath`""
+                    -Argument "-ExecutionPolicy Bypass -NonInteractive -WindowStyle Hidden -File `"$ScriptPath`""
     $trigger  = New-ScheduledTaskTrigger -Once -At $NotifyTime
     $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 1)
 
@@ -124,16 +121,14 @@ function Register-NotifyTask {
         -RunLevel Limited `
         -Force | Out-Null
 
-    Write-Log "通知タスクを登録しました: $TaskName / 実行予定時刻: $($NotifyTime.ToString('yyyy/MM/dd HH:mm'))"
+    Write-Log "タスクを登録しました: $TaskName / 実行予定時刻: $($NotifyTime.ToString('yyyy/MM/dd HH:mm'))"
 }
 
 # =============================================================================
 # メイン処理
 # =============================================================================
 try {
-    # Fix(Bug1): タスクスケジューラ経由の非インタラクティブセッションでは
-    #            スクリプト先頭の Add-Type が別コンテキスト扱いになる場合がある。
-    #            try ブロック内で再ロードして MessageBox が確実に使えるようにする。
+    # タスクスケジューラ経由の非インタラクティブセッションでも型が使えるよう再ロード
     Add-Type -AssemblyName System.Windows.Forms
 
     Ensure-Directory $LOCAL_LOG_DIR
@@ -196,24 +191,43 @@ try {
 
     Write-Log "入力受付完了 / 出勤: $startTimeStr / 予定退勤: $plannedEndStr"
 
-    # --- 通知時刻計算（予定退勤の5分前）---
-    $today       = Get-Date
-    $notifyTime  = $today.Date `
+    $today = Get-Date
+
+    # --- 退勤通知タスク（Script-B）: 予定退勤の5分前 ---
+    $notifyTime = $today.Date `
         + [TimeSpan]::FromHours($plannedEndTime.Hour) `
         + [TimeSpan]::FromMinutes($plannedEndTime.Minute) `
         - [TimeSpan]::FromMinutes(5)
 
     if ($notifyTime -le (Get-Date)) {
-        Write-Log "通知予定時刻が過去です。通知タスクは登録しません。" "WARN"
+        Write-Log "退勤通知の予定時刻が過去です。通知タスクは登録しません。" "WARN"
         [System.Windows.Forms.MessageBox]::Show(
             "予定退勤時刻の5分前がすでに過ぎているため、`n退勤通知タスクは登録されませんでした。",
             "注意", 0, 48) | Out-Null
     } else {
-        # タスクスケジューラに通知タスクを登録
         Register-NotifyTask `
-            -TaskName    $TASK_NAME `
-            -NotifyTime  $notifyTime `
-            -ScriptBPath $SCRIPT_B_PATH
+            -TaskName   $TASK_NAME `
+            -NotifyTime $notifyTime `
+            -ScriptPath $SCRIPT_B_PATH
+    }
+
+    # --- WeeklyReport タスク: 金曜日のみ・予定退勤の60分前 ---
+    $weeklyReportTime = $null
+    if ($today.DayOfWeek -eq [DayOfWeek]::Friday) {
+        $weeklyReportTime = $today.Date `
+            + [TimeSpan]::FromHours($plannedEndTime.Hour) `
+            + [TimeSpan]::FromMinutes($plannedEndTime.Minute) `
+            - [TimeSpan]::FromMinutes(60)
+
+        if ($weeklyReportTime -le (Get-Date)) {
+            Write-Log "WeeklyReport の実行予定時刻が過去です。タスクは登録しません。" "WARN"
+            $weeklyReportTime = $null
+        } else {
+            Register-NotifyTask `
+                -TaskName   $TASK_NAME_WEEKLY `
+                -NotifyTime $weeklyReportTime `
+                -ScriptPath $WEEKLY_REPORT_PATH
+        }
     }
 
     # --- CSVログ書き込み ---
@@ -227,13 +241,17 @@ try {
     Write-Log "CSVログへの書き込みが完了しました。"
     Write-Log "=== Script-A 正常終了 ==="
 
-    [System.Windows.Forms.MessageBox]::Show(
-        "出勤登録が完了しました。`n`n" +
-        "出勤時間　　: $startTimeStr`n" +
-        "予定退勤　　: $plannedEndStr`n" +
-        "退勤通知予定: $($notifyTime.ToString('HH:mm'))`n`n" +
-        "退勤5分前に通知が表示されます。",
-        "登録完了", 0, 64) | Out-Null
+    # 完了メッセージ（金曜のみ WeeklyReport 予定時刻を追記）
+    $msgBody = "出勤登録が完了しました。`n`n" +
+               "出勤時間　　: $startTimeStr`n" +
+               "予定退勤　　: $plannedEndStr`n" +
+               "退勤通知予定: $($notifyTime.ToString('HH:mm'))`n"
+    if ($null -ne $weeklyReportTime) {
+        $msgBody += "週次レポート: $($weeklyReportTime.ToString('HH:mm'))（退勤60分前）`n"
+    }
+    $msgBody += "`n退勤5分前に通知が表示されます。"
+
+    [System.Windows.Forms.MessageBox]::Show($msgBody, "登録完了", 0, 64) | Out-Null
 
 } catch {
     Write-Log "予期しないエラーが発生しました: $_" "ERROR"
