@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SharePoint + Power Automate 承認フロー改善設計</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #222535;
+      --border: #2e3348;
+      --accent: #4f8ef7;
+      --accent2: #7c3aed;
+      --accent3: #059669;
+      --accent4: #d97706;
+      --accent5: #dc2626;
+      --text: #e2e8f0;
+      --text-muted: #8892a4;
+      --text-dim: #4a5568;
+      --code-bg: #141720;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.7;
+      padding: 40px 20px 80px;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+    }
+
+    /* Header */
+    .header {
+      border-left: 4px solid var(--accent);
+      padding: 24px 28px;
+      background: var(--surface);
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 48px;
+    }
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+      margin-bottom: 8px;
+    }
+    .header p {
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+    .badges {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+      flex-wrap: wrap;
+    }
+    .badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+      border: 1px solid;
+    }
+    .badge-blue  { color: var(--accent);  border-color: #2a4a8a; background: #0d1f40; }
+    .badge-green { color: #34d399;        border-color: #065f46; background: #022c22; }
+    .badge-amber { color: #fbbf24;        border-color: #78350f; background: #1c0a00; }
+
+    /* Section */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-num {
+      width: 28px; height: 28px;
+      border-radius: 6px;
+      background: var(--accent2);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-title h2 {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .card h3 {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Code block */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+      color: #c9d1e0;
+      white-space: pre;
+    }
+
+    /* Table */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    th {
+      background: var(--surface2);
+      color: var(--text-muted);
+      font-weight: 600;
+      text-align: left;
+      padding: 10px 14px;
+      border-bottom: 2px solid var(--border);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+    td {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(79, 142, 247, 0.04); }
+    td code {
+      background: var(--code-bg);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: monospace;
+      color: #93c5fd;
+    }
+
+    /* Status tags */
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .tag-blue   { background: #1e3a5f; color: #93c5fd; }
+    .tag-green  { background: #14532d; color: #86efac; }
+    .tag-amber  { background: #451a03; color: #fcd34d; }
+    .tag-red    { background: #450a0a; color: #fca5a5; }
+    .tag-purple { background: #2e1065; color: #c4b5fd; }
+    .tag-gray   { background: #1e293b; color: #94a3b8; }
+
+    /* Flow block */
+    .flow-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+    .flow-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .flow-trigger {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+    .flow-trigger span {
+      background: #1e2a3a;
+      border: 1px solid #2a4060;
+      color: #7dd3fc;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
+
+    /* Grid */
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
+
+    /* Timeline */
+    .timeline { position: relative; padding-left: 24px; }
+    .timeline::before {
+      content: '';
+      position: absolute; left: 7px; top: 0; bottom: 0;
+      width: 2px; background: var(--border);
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .timeline-item::before {
+      content: '';
+      position: absolute;
+      left: -21px; top: 5px;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg);
+    }
+    .timeline-item .ti-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .timeline-item .ti-body {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Phase table */
+    .phase-row td:first-child { font-weight: 700; color: var(--text); }
+
+    /* Reminder table */
+    .reminder-level-1 { border-left: 3px solid var(--accent); }
+    .reminder-level-2 { border-left: 3px solid var(--accent4); }
+    .reminder-level-3 { border-left: 3px solid var(--accent5); }
+
+    /* Mail block */
+    .mail-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .mail-header {
+      background: var(--surface2);
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .mail-header span { color: #fff; font-weight: 600; }
+    .mail-body {
+      padding: 16px 20px;
+      font-size: 12.5px;
+      font-family: monospace;
+      line-height: 1.9;
+      color: #c9d1e0;
+      white-space: pre-wrap;
+    }
+
+    /* Divider */
+    .divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 32px 0;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 12px;
+      margin-top: 64px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <h1>SharePoint + Power Automate 承認フロー改善設計</h1>
+    <p>手動依存を排除し、状態管理・締切管理・自動リマインドを実現する承認基盤の設計書</p>
+    <div class="badges">
+      <span class="badge badge-blue">SharePoint</span>
+      <span class="badge badge-blue">Power Automate</span>
+      <span class="badge badge-green">自動化設計</span>
+      <span class="badge badge-amber">実装可能レベル</span>
+    </div>
+  </div>
+
+  <!-- 1. 現状課題 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">1</div>
+      <h2>現状課題の構造分析</h2>
+    </div>
+
+    <div class="card">
+      <h3>人依存の連鎖構造</h3>
+      <pre>申請者が手動でメール送信
+    ↓ (抜け漏れ発生)
+承認者が気づかず放置
+    ↓ (状態不明)
+申請者が口頭で催促
+    ↓ (属人的・非効率)
+承認者が対応 or 忘れる
+    ↓
+次の承認者へ手動転送
+    ↓ (どこで止まってるかわからない)
+最終結果が申請者に届かない</pre>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>カテゴリ</th><th>問題</th><th>影響</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="tag tag-red">状態管理</span></td><td>誰が持っているか不明</td><td>滞留の発見が遅れる</td></tr>
+          <tr><td><span class="tag tag-red">期限管理</span></td><td>締切が設定されていない</td><td>エスカレーションが起きない</td></tr>
+          <tr><td><span class="tag tag-amber">通知</span></td><td>手動依頼のみ</td><td>見落とし・忘れが起きる</td></tr>
+          <tr><td><span class="tag tag-amber">可視性</span></td><td>進捗一覧がない</td><td>管理者が把握できない</td></tr>
+          <tr><td><span class="tag tag-gray">証跡</span></td><td>承認履歴が散在</td><td>監査・振り返りができない</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 2. 改善フロー設計 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">2</div>
+      <h2>改善フロー設計（自動化前提）</h2>
+    </div>
+
+    <div class="card">
+      <h3>フロー全体像</h3>
+      <pre>[申請者がSharePointリストに新規登録]
+        ↓ Power Automate: フロー①起動
+[ステータス = 「申請中」にセット]
+[承認者①に初期通知メール自動送信]
+        ↓
+[承認者①がSharePoint上でアクション]
+    ├─ 承認 → ステータス更新 → 承認者②へ通知
+    ├─ 差戻 → ステータス=「差戻」→ 申請者に通知
+    └─ 未対応 → フロー②: 定期チェックでリマインド送信
+        ↓
+[全承認者承認完了]
+[ステータス=「承認済」→ 申請者に完了通知]
+        ↓
+[管理ダッシュボード(SharePointビュー)に反映]</pre>
+    </div>
+  </div>
+
+  <!-- 3. SharePoint列設計 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">3</div>
+      <h2>SharePoint 列設計</h2>
+    </div>
+
+    <div class="card" style="margin-bottom:16px;">
+      <h3>リスト名: 承認管理リスト</h3>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>列名</th><th>列の種類</th><th>設定・選択肢</th><th>備考</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>タイトル</td><td><code>1行テキスト</code></td><td>—</td><td>案件名</td></tr>
+          <tr><td>申請者</td><td><code>ユーザー/グループ</code></td><td>—</td><td>現在のユーザー自動セット</td></tr>
+          <tr><td>申請日時</td><td><code>日付と時刻</code></td><td>自動(フロー)</td><td></td></tr>
+          <tr><td>申請区分</td><td><code>選択肢</code></td><td>購買/経費/契約/その他</td><td></td></tr>
+          <tr><td>承認者①_名前</td><td><code>ユーザー/グループ</code></td><td>—</td><td></td></tr>
+          <tr><td>承認者①_結果</td><td><code>選択肢</code></td><td>未対応/承認/差戻</td><td>既定値: 未対応</td></tr>
+          <tr><td>承認者①_日時</td><td><code>日付と時刻</code></td><td>—</td><td></td></tr>
+          <tr><td>承認者①_コメント</td><td><code>複数行テキスト</code></td><td>—</td><td></td></tr>
+          <tr><td>承認者②_名前</td><td><code>ユーザー/グループ</code></td><td>—</td><td>多段承認の場合</td></tr>
+          <tr><td>承認者②_結果</td><td><code>選択肢</code></td><td>未対応/承認/差戻</td><td>既定値: 未対応</td></tr>
+          <tr><td>承認者②_日時</td><td><code>日付と時刻</code></td><td>—</td><td></td></tr>
+          <tr><td>承認者②_コメント</td><td><code>複数行テキスト</code></td><td>—</td><td></td></tr>
+          <tr><td>ステータス</td><td><code>選択肢</code></td><td>申請中/承認者①確認中/承認者②確認中/承認済/差戻/取下げ</td><td>既定値: 申請中</td></tr>
+          <tr><td>締切日</td><td><code>日付と時刻</code></td><td>—</td><td>申請日+3営業日をフローでセット</td></tr>
+          <tr><td>最終リマインド送信日時</td><td><code>日付と時刻</code></td><td>—</td><td>フローが更新</td></tr>
+          <tr><td>リマインド回数</td><td><code>数値</code></td><td>—</td><td>フローが更新</td></tr>
+          <tr><td>添付ファイル</td><td><code>添付ファイル</code></td><td>有効</td><td></td></tr>
+          <tr><td>管理メモ</td><td><code>複数行テキスト</code></td><td>—</td><td>管理者用</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <hr class="divider">
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>ビュー名</th><th>フィルタ条件</th><th>用途</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><span class="tag tag-blue">進行中一覧</span></td><td>ステータス ≠ 承認済 AND ≠ 取下げ</td><td>管理者モニタリング</td></tr>
+          <tr><td><span class="tag tag-red">期限超過</span></td><td>締切日 &lt; 今日 AND ステータス = 申請中 or 確認中</td><td>要エスカレ案件</td></tr>
+          <tr><td><span class="tag tag-amber">自分の承認待ち</span></td><td>承認者①_名前 = 現在のユーザー AND 結果 = 未対応</td><td>承認者の作業画面</td></tr>
+          <tr><td><span class="tag tag-green">完了済み</span></td><td>ステータス = 承認済</td><td>実績確認</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. Power Automate構成 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">4</div>
+      <h2>Power Automate 構成（フロー単位）</h2>
+    </div>
+
+    <!-- フロー① -->
+    <div class="flow-block">
+      <div class="flow-title">フロー① — 申請受付・初期通知</div>
+      <div class="flow-trigger">トリガー: <span>SharePointリストに新規アイテム作成時</span></div>
+      <pre>[トリガー] アイテム作成
+    ↓
+[アクション] 締切日を計算してアイテム更新
+    - 申請日 + 3日（営業日考慮はWorkday関数 or 固定日数）
+    ↓
+[アクション] ステータスを「承認者①確認中」に更新
+    ↓
+[アクション] 承認者①へメール送信
+    ↓
+[アクション] 申請者へ受付完了メール送信</pre>
+    </div>
+
+    <!-- フロー② -->
+    <div class="flow-block">
+      <div class="flow-title">フロー② — リマインド・期限監視</div>
+      <div class="flow-trigger">トリガー: <span>定期実行（毎日 9:00）</span></div>
+      <pre>[トリガー] 繰り返し: 毎日 09:00
+    ↓
+[アクション] SharePointリストを取得
+    - フィルタ: ステータス eq '承認者①確認中' or '承認者②確認中'
+    ↓
+[アクション] 各アイテムに対してApply to each
+    ↓
+    [条件分岐①] 締切日 &lt; 今日
+        ├─ YES:
+        │   [アクション] ステータスを「期限超過」に更新
+        │   [アクション] 承認者+管理者にエスカレーションメール送信
+        └─ NO:
+            [条件分岐②] 最終リマインド送信日時から24時間以上経過
+                └─ YES:
+                    [アクション] 承認者にリマインドメール送信
+                    [アクション] リマインド回数+1、最終送信日時を更新</pre>
+    </div>
+
+    <!-- フロー③ -->
+    <div class="flow-block">
+      <div class="flow-title">フロー③ — 承認アクション処理</div>
+      <div class="flow-trigger">トリガー: <span>SharePointアイテム更新時（承認者①_結果 列が変更された場合）</span></div>
+      <pre>[トリガー] アイテム変更
+    ↓
+[条件] 承認者①_結果 が変更された？
+    ↓
+[条件分岐] 承認者①_結果の値
+    ├─ 「承認」:
+    │   [多段の場合]   ステータス=「承認者②確認中」に更新
+    │                 承認者②に通知メール送信
+    │   [最終承認の場合] ステータス=「承認済」に更新
+    │                   申請者に完了メール送信
+    └─ 「差戻」:
+        [アクション] ステータス=「差戻」に更新
+        [アクション] 申請者に差戻メール送信（コメント含む）</pre>
+    </div>
+
+    <!-- フロー④ -->
+    <div class="flow-block">
+      <div class="flow-title">フロー④ — 月次集計レポート（オプション）</div>
+      <div class="flow-trigger">トリガー: <span>毎月1日 08:00</span></div>
+      <pre>[トリガー] 繰り返し: 毎月1日
+    ↓
+[アクション] 先月分のアイテムを取得・集計
+    - 承認済件数 / 差戻件数 / 平均処理日数
+    ↓
+[アクション] 管理者にExcelレポートをメール送信</pre>
+    </div>
+  </div>
+
+  <!-- 5. リマインド条件設計 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">5</div>
+      <h2>リマインド条件設計</h2>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:16px;">
+      <table>
+        <thead>
+          <tr><th>条件</th><th>タイミング</th><th>送信先</th><th>内容</th></tr>
+        </thead>
+        <tbody>
+          <tr class="reminder-level-1"><td>初期通知</td><td>申請直後</td><td>承認者</td><td>承認依頼</td></tr>
+          <tr class="reminder-level-1"><td>リマインド①</td><td>翌日 09:00（未対応の場合）</td><td>承認者</td><td>未対応通知</td></tr>
+          <tr class="reminder-level-2"><td>リマインド②</td><td>2日後 09:00（未対応の場合）</td><td>承認者</td><td>再通知</td></tr>
+          <tr class="reminder-level-2"><td>エスカレーション</td><td>締切日当日 09:00</td><td>承認者 + 管理者</td><td>期限到来通知</td></tr>
+          <tr class="reminder-level-3"><td>期限超過通知</td><td>締切日翌日以降 09:00</td><td>承認者 + 管理者</td><td>超過アラート</td></tr>
+          <tr class="reminder-level-3"><td>リマインド上限</td><td>リマインド回数 ≥ 5回</td><td>管理者のみ</td><td>介入要請</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h3>回数による挙動制御</h3>
+      <pre>回数 0-2 : 承認者のみに送信
+回数 3-4 : 承認者 + 管理者に送信（CC）
+回数 5以上: 管理者に「手動介入が必要」メールを送信し、フロー一時停止</pre>
+    </div>
+  </div>
+
+  <!-- 6. メール文面 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">6</div>
+      <h2>メール文面</h2>
+    </div>
+
+    <div class="mail-block">
+      <div class="mail-header">初期通知メール <span>→ 承認者宛</span></div>
+      <div class="mail-body">件名: 【承認依頼】@{タイトル} ／ 締切: @{締切日}
+
+@{承認者①_名前} 様
+
+下記の案件について承認をお願いいたします。
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+■ 案件名   : @{タイトル}
+■ 申請者   : @{申請者}
+■ 申請区分 : @{申請区分}
+■ 申請日時 : @{申請日時}
+■ 承認締切 : @{締切日}（3営業日以内）
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+以下のリンクから承認・差戻の操作をお願いいたします。
+→ @{SharePointアイテムURL}
+
+「承認者①_結果」列を「承認」または「差戻」に変更し、
+必要に応じてコメントを記入してください。
+
+※本メールは自動送信です。返信は不要です。</div>
+    </div>
+
+    <div class="mail-block">
+      <div class="mail-header">リマインドメール <span>→ 承認者宛</span></div>
+      <div class="mail-body">件名: 【リマインド/@{リマインド回数}回目】@{タイトル} ／ 締切: @{締切日}
+
+@{承認者_名前} 様
+
+以下の承認案件がまだ対応されていません。
+お手数ですが確認をお願いいたします。
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+■ 案件名        : @{タイトル}
+■ 申請者        : @{申請者}
+■ 締切日        : @{締切日}
+■ 申請からの経過 : @{経過日数}日
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+→ @{SharePointアイテムURL}
+
+※締切を過ぎた場合、管理者へ自動エスカレーションされます。</div>
+    </div>
+
+    <div class="mail-block">
+      <div class="mail-header">エスカレーションメール <span>→ 管理者宛</span></div>
+      <div class="mail-body">件名: 【要対応】期限超過案件が発生しています / @{タイトル}
+
+管理者 様
+
+以下の承認案件が締切を超過しました。
+承認者への確認または代替対応をお願いします。
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+■ 案件名          : @{タイトル}
+■ 申請者          : @{申請者}
+■ 現在の承認者    : @{承認者_名前}
+■ 締切日          : @{締切日}
+■ 超過日数        : @{超過日数}日
+■ リマインド送信回数: @{リマインド回数}回
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+→ @{SharePointアイテムURL}</div>
+    </div>
+
+    <div class="mail-block">
+      <div class="mail-header">承認完了メール <span>→ 申請者宛</span></div>
+      <div class="mail-body">件名: 【承認完了】@{タイトル}
+
+@{申請者} 様
+
+申請された案件の承認が完了しました。
+
+━━━━━━━━━━━━━━━━━━━━━━━━
+■ 案件名      : @{タイトル}
+■ 最終承認者  : @{最終承認者名}
+■ 承認完了日時 : @{承認完了日時}
+━━━━━━━━━━━━━━━━━━━━━━━━
+
+詳細はこちら → @{SharePointアイテムURL}</div>
+    </div>
+  </div>
+
+  <!-- 7. 運用ルール -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">7</div>
+      <h2>運用ルール</h2>
+    </div>
+
+    <div class="grid2">
+      <div class="card">
+        <h3>申請者ルール</h3>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="ti-label">申請はSharePointリストのみ受付</div>
+            <div class="ti-body">メール・口頭申請は受け付けない</div>
+          </div>
+          <div class="timeline-item">
+            <div class="ti-label">添付ファイルはリストに添付</div>
+            <div class="ti-body">別途メール送付禁止</div>
+          </div>
+          <div class="timeline-item">
+            <div class="ti-label">差戻時は修正後に再申請</div>
+            <div class="ti-body">同アイテムのコメント欄に対応内容を記載</div>
+          </div>
+          <div class="timeline-item">
+            <div class="ti-label">取下げはステータスを「取下げ」に変更</div>
+            <div class="ti-body">承認者への連絡不要（フローが通知）</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>承認者ルール</h3>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="ti-label">対応期限は受信から3営業日以内</div>
+            <div class="ti-body">システム設定値に準拠</div>
+          </div>
+          <div class="timeline-item">
+            <div class="ti-label">差戻時はコメント必須</div>
+            <div class="ti-body">空欄での差戻はシステム側でブロック推奨</div>
+          </div>
+          <div class="timeline-item">
+            <div class="ti-label">代理承認は管理者に連絡</div>
+            <div class="ti-body">管理者がSharePoint上で承認者変更可能</div>
+          </div>
+          <div class="timeline-item">
+            <div class="ti-label">メール通知への直接返信は無効</div>
+            <div class="ti-body">必ずSharePointから操作する</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:0;">
+      <h3>管理者ルール</h3>
+      <div class="grid2">
+        <div>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="ti-label">毎朝「進行中一覧」ビューを確認</div>
+              <div class="ti-body">「期限超過」ビューは必須チェック</div>
+            </div>
+            <div class="timeline-item">
+              <div class="ti-label">リマインド5回超過案件は即日対応</div>
+              <div class="ti-body">エスカレーションメール受信後24時間以内</div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="ti-label">月次レポートを経営層に共有</div>
+              <div class="ti-body">フロー④からの自動レポートを活用</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. テスト観点 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">8</div>
+      <h2>テスト観点</h2>
+    </div>
+
+    <div class="card">
+      <h3>機能テスト</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>テストケース</th><th>確認内容</th><th>期待結果</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>新規アイテム作成</td><td>フロー①が起動するか</td><td>承認者にメール届く・締切日がセットされる</td></tr>
+            <tr><td>承認者①が「承認」を選択</td><td>フロー③が起動するか</td><td>ステータス変更・承認者②に通知</td></tr>
+            <tr><td>承認者①が「差戻」を選択</td><td>申請者に差戻メールが届くか</td><td>差戻コメントが本文に含まれる</td></tr>
+            <tr><td>全承認者が承認完了</td><td>完了メールが届くか</td><td>申請者にステータス=承認済で通知</td></tr>
+            <tr><td>翌日09:00時点で未対応</td><td>リマインドが届くか</td><td>リマインド①が承認者に届く</td></tr>
+            <tr><td>締切日を超過</td><td>エスカレーションが起動するか</td><td>管理者+承認者にエスカレーションメール</td></tr>
+            <tr><td>リマインド5回超過</td><td>管理者のみに通知されるか</td><td>承認者へのリマインドが停止</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>異常系テスト</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>テストケース</th><th>確認内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>承認者列が空の状態でアイテム作成</td><td>フローがエラーにならず管理者に通知されるか</td></tr>
+            <tr><td>同一アイテムを複数人が同時に更新</td><td>二重起動・データ競合が起きないか</td></tr>
+            <tr><td>フロー実行エラー発生時</td><td>Power Automateのエラー通知が管理者に届くか</td></tr>
+            <tr><td>メールアドレス不正（退職者等）</td><td>フローが停止せずエラーをログに記録するか</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>性能・運用テスト</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>テストケース</th><th>確認内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>同時10件以上の申請</td><td>フローの並列実行が正常に動作するか</td></tr>
+            <tr><td>1ヶ月の連続稼働</td><td>リマインド回数・日時のカウントがずれないか</td></tr>
+            <tr><td>月次レポート生成</td><td>件数・平均日数が正確に集計されるか</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. フロー全体図 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">9</div>
+      <h2>フロー全体図</h2>
+    </div>
+
+    <div class="card">
+      <pre>【申請者】
+    │
+    ▼  SharePointリストに新規アイテム登録
+    │
+    ├──────────────────────────────────────────────┐
+    │                                              │
+    ▼ フロー① 起動                                │
+    │                                              │
+    ├─ 締切日を自動計算・設定                      │
+    ├─ ステータス = 「承認者①確認中」              │
+    ├─ 申請者に受付完了メール                      │
+    └─ 承認者①に初期通知メール                    │
+                │                                  │
+                │                       フロー② 毎日09:00
+                ▼                                  │
+        【承認者①がSharePointで操作】              │
+                │                                  │
+    ┌───────────┼──────────┐                      │
+    │           │          │                      │
+  [承認]       [差戻]   [未対応]                   │
+    │           │          │                      │
+    │           │          └── フロー②が検知 ←───┘
+    │           │                    │
+    │           │          ┌─────────┴──────────┐
+    │           │          │                     │
+    │           │   [リマインド条件]         [期限超過条件]
+    │           │          │                     │
+    │           │    承認者にリマインド       承認者+管理者に
+    │           │    回数+1更新              エスカレーション
+    │           │
+    │           ▼
+    │  ステータス = 「差戻」
+    │  申請者に差戻メール（コメント付き）
+    │           │
+    │           ▼
+    │  【申請者が修正・再申請 or 取下げ】
+    │
+    ▼ フロー③ 起動（多段承認の場合）
+    │
+    ├─ ステータス = 「承認者②確認中」
+    └─ 承認者②に初期通知メール
+                │
+                ▼
+        【承認者②がSharePointで操作】
+                │
+    ┌───────────┴───────────┐
+    │                       │
+  [承認]                   [差戻]
+    │                       └── (申請者に差戻メール)
+    │
+    ▼ フロー③ 起動（最終承認完了）
+    │
+    ├─ ステータス = 「承認済」
+    └─ 申請者に承認完了メール
+
+                           ┌──────────────────────┐
+【管理者】 ←───────────────│  管理ダッシュボード    │
+    │                      │  (SharePointビュー)    │
+    │                      │  ・進行中一覧          │
+    │                      │  ・期限超過一覧        │
+    │                      │  ・完了済み一覧        │
+    │                      └──────────────────────┘
+    │
+    └─ フロー④（月次）→ 集計レポートをメール受信</pre>
+    </div>
+  </div>
+
+  <!-- 実装優先順位 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num" style="background:var(--accent3);">+</div>
+      <h2>実装優先順位</h2>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>フェーズ</th><th>実装内容</th><th>工数目安</th></tr>
+        </thead>
+        <tbody class="phase-row">
+          <tr><td><span class="tag tag-blue">Phase 1</span></td><td>SharePointリスト設計 + フロー①</td><td>1〜2日</td></tr>
+          <tr><td><span class="tag tag-blue">Phase 2</span></td><td>フロー②（リマインド・期限超過）</td><td>1日</td></tr>
+          <tr><td><span class="tag tag-amber">Phase 3</span></td><td>フロー③（承認アクション処理）</td><td>1日</td></tr>
+          <tr><td><span class="tag tag-amber">Phase 4</span></td><td>ビュー整備 + テスト実施</td><td>1〜2日</td></tr>
+          <tr><td><span class="tag tag-gray">Phase 5</span></td><td>フロー④（月次レポート）</td><td>0.5日</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card" style="margin-top:16px; border-left: 3px solid var(--accent3);">
+      <h3>推奨アプローチ</h3>
+      <p style="color: var(--text-muted); font-size: 13px;">Phase 1〜3を先に本番投入し、運用しながらPhase 4〜5を追加するアプローチが安全です。フローのエラーハンドリング（Power Automateの「並列分岐にスコープ追加 + 失敗時に管理者通知」）は各フローに必ず組み込んでください。</p>
+    </div>
+  </div>
+
+  <div class="footer">
+    SharePoint + Power Automate 承認フロー改善設計書
+  </div>
+
+</div>
+</body>
+</html>
