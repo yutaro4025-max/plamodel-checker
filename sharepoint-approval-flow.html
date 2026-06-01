@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SharePoint + Power Automate 承認フロー改善設計 v2</title>
+  <title>SharePoint + Power Automate 承認フロー改善設計 v3</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -231,6 +231,7 @@
       <span class="badge badge-green">Excel制御テーブル</span>
       <span class="badge badge-purple">Power Automate</span>
       <span class="badge badge-amber">列変更なし</span>
+      <span class="badge badge-green">複数承認者対応（;区切り）</span>
     </div>
   </div>
 
@@ -243,6 +244,7 @@
         <li>既存列（名前 / 承認開始 / 子アイテムの数 / 更新日時 / 更新者 / 確認済）は一切変更しない</li>
         <li>承認者情報・締切・リマインド回数・ステータスはExcelテーブルで管理</li>
         <li>Power AutomateがExcelを読み書きして制御ロジックを実行</li>
+        <li>承認者は「;」区切りで複数指定可能。誰か1人が承認した時点で完了（ファーストレスポンス方式）</li>
         <li>試験運用後に本格移行する際もSharePoint側の変更は最小限</li>
       </ul>
     </div>
@@ -392,13 +394,13 @@
             <td><span class="excel-col-manual">承認者①_メール</span></td>
             <td><code>テキスト</code></td>
             <td>手動入力</td>
-            <td>第1承認者のメールアドレス</td>
+            <td>第1承認者のメールアドレス。複数の場合は <code>a@co.jp;b@co.jp</code> のように ; で区切る。誰か1人が承認した時点で完了（ファーストレスポンス）。</td>
           </tr>
           <tr>
             <td><span class="excel-col-manual">承認者②_メール</span></td>
             <td><code>テキスト</code></td>
             <td>手動入力（任意）</td>
-            <td>第2承認者。空欄の場合は1段承認として動作</td>
+            <td>第2段承認者。; 区切りで複数指定可。空欄の場合は1段承認として動作。</td>
           </tr>
           <tr>
             <td><span class="excel-col-manual">管理者_メール</span></td>
@@ -422,13 +424,19 @@
             <td><span class="excel-col-auto">現在の承認担当</span></td>
             <td><code>テキスト</code></td>
             <td>フロー自動更新</td>
-            <td>リマインド送信先を特定するために使用</td>
+            <td>リマインド送信先。複数の場合は ; 区切りのまま保持し、フローが split() で展開して全員に送信。</td>
           </tr>
           <tr>
             <td><span class="excel-col-auto">承認者①_結果</span></td>
             <td><code>テキスト</code></td>
             <td>フロー自動更新</td>
             <td>承認 / 差戻 / 未対応</td>
+          </tr>
+          <tr>
+            <td><span class="excel-col-auto">承認者①_対応者</span></td>
+            <td><code>テキスト</code></td>
+            <td>フロー自動更新</td>
+            <td>複数指定時に実際に承認/差戻した人のメールアドレスを記録</td>
           </tr>
           <tr>
             <td><span class="excel-col-auto">承認者①_日時</span></td>
@@ -486,14 +494,18 @@
 
 1. Excel「T_承認管理」テーブルに1行追加
    → SP_案件名（SharePointの「名前」列と完全一致させる）
-   → 承認者①_メール、承認者②_メール（任意）、管理者_メールを記入
+   → 承認者①_メール  1人 : user@co.jp
+                    複数 : user1@co.jp;user2@co.jp;user3@co.jp  ← ; 区切り
+   → 承認者②_メール（任意・多段の場合。複数指定も同様）
+   → 管理者_メールを記入
 
 2. SharePointリストに案件を登録
 
 3. 「承認開始」にチェック
    → Power Automate フロー①が起動
-   → ExcelからSP_案件名で行を検索し、承認者メールを取得
-   → 通知メールを自動送信</pre>
+   → ExcelからSP_案件名で行を検索
+   → ; で分割して承認者全員に同時通知
+   → 最初に承認/差戻した1名の結果で後続処理（ファーストレスポンス）</pre>
     </div>
   </div>
 
@@ -519,14 +531,22 @@
     ├─ NO: 管理者にアラートメール（「Excelに未登録の案件」）→ フロー終了
     └─ YES: 続行
     ↓
+[アクション] 変数セット: varApprovers = split(承認者①_メール, ';')
+    ※ 例: "a@co.jp;b@co.jp;c@co.jp" → ["a@co.jp","b@co.jp","c@co.jp"]
+    ↓
 [アクション] Excel行を更新
     - SP_アイテムID = SharePointのアイテムID
     - 締切日        = addDays(utcNow(), 3)
     - ステータス    = '承認者①確認中'
-    - 現在の承認担当= 承認者①_メール
+    - 現在の承認担当= 承認者①_メール（; 区切りのまま保持）
     - リマインド回数= 0
     ↓
-[アクション] 承認者①へ通知メール送信
+[アクション] Apply to each: varApprovers の各メールアドレスに対して
+    └─ 通知メール送信（宛先: 各アドレス、件名・本文は同一）
+    ↓
+[アクション] Power Automate 承認コネクタ起動
+    - タイプ: "Approve/Reject - First to respond"（ファーストレスポンス）
+    - 承認者: join(varApprovers, ';')  ← 全員を承認者として登録
     ↓
 [アクション] 申請者へ受付完了メール送信（更新者のメールを使用）</pre>
     </div>
@@ -551,7 +571,8 @@
                 │   [条件③] リマインド回数 >= 5
                 │       ├─ YES: 管理者のみに「手動介入要請」メール
                 │       └─ NO:
-                │           [メール送信] 現在の承認担当にリマインドメール
+                │           varRemind = split(現在の承認担当, ';')
+                │           [Apply to each] varRemind 全員にリマインドメール送信
                 │           [Excel更新] リマインド回数+1、最終リマインド日時=now()
                 └─ NO: スキップ</pre>
     </div>
@@ -562,24 +583,32 @@
       <div class="flow-trigger">トリガー: <span>HTTP要求受信時（承認者がメール内リンクをクリック）</span></div>
       <pre style="font-size:11.5px;">[設計方針] メール本文に「承認する」「差戻す」ボタン（Power Automate承認コネクタ or HTTPトリガーURL）を埋め込む
 
-─── 方法A: Power Automateの「承認」コネクタを使用する場合 ─────────────
-[アクション] 承認の開始（承認者①のメールに承認/拒否ボタン付きメールを送信）
+─── 承認コネクタ（ファーストレスポンス方式）───────────────────────────
+[フロー①から引き継ぎ] 承認コネクタ「First to respond」で全承認者に送付済み
 [アクション] 承認結果の待機
-    ├─ 承認:
-    │   [Excel更新] 承認者①_結果='承認'、承認者①_日時=now()
+    ↓
+    ├─ 承認（いずれか1名が承認）:
+    │   [Excel更新] 承認者①_結果='承認'
+    │              承認者①_対応者=responses()[0].responder  ← 実際に承認した人
+    │              承認者①_日時=now()
     │   [条件] 承認者②_メールが空でないか？
-    │       ├─ YES: ステータス='承認者②確認中'、承認者②にも同様の承認コネクタを起動
-    │       └─ NO:  ステータス='承認済'
-    │              SharePoint「確認済」列を True に更新
-    │              申請者に完了メール送信
-    └─ 拒否（差戻）:
-        [Excel更新] 承認者①_結果='差戻'、備考=コメント
+    │       ├─ YES:
+    │       │   varApprovers2 = split(承認者②_メール, ';')
+    │       │   ステータス='承認者②確認中'
+    │       │   Apply to each: varApprovers2 全員に通知メール
+    │       │   承認コネクタ（First to respond）を承認者②全員で再起動
+    │       └─ NO:
+    │           ステータス='承認済'
+    │           SharePoint「確認済」列を True に更新
+    │           申請者に完了メール送信（対応者名を本文に含める）
+    │
+    └─ 差戻（いずれか1名が差戻）:
+        [Excel更新] 承認者①_結果='差戻'
+                   承認者①_対応者=responses()[0].responder
+                   備考=responses()[0].comments
         [Excel更新] ステータス='差戻'
         [メール送信] 申請者に差戻メール（コメント含む）
-
-─── 方法B: Excelを直接編集して結果を反映する場合（シンプル版） ────────
-承認者がExcelの「承認者①_結果」列を直接 '承認' or '差戻' に変更
-  → フロー④（Excel変更検知）が起動して後続処理を実行</pre>
+        ※ 残りの承認者への保留中の承認依頼は自動的にキャンセル</pre>
     </div>
 
     <!-- フロー④ -->
@@ -813,6 +842,10 @@ SharePointリストの「確認済」列がONになっています。</div>
         <table>
           <thead><tr><th>テストケース</th><th>確認内容</th></tr></thead>
           <tbody>
+            <tr><td>承認者①に ; 区切りで3名登録</td><td>3名全員に通知メールが届くか</td></tr>
+            <tr><td>3名のうち1名が承認</td><td>残り2名の保留承認がキャンセルされ完了処理が走るか</td></tr>
+            <tr><td>3名のうち1名が差戻</td><td>残り2名の保留承認がキャンセルされ申請者に差戻メールが届くか</td></tr>
+            <tr><td>リマインド送信時に ; 区切り3名が登録済み</td><td>3名全員にリマインドが届くか</td></tr>
             <tr><td>Excelの「承認者①_メール」を試験運用中に変更</td><td>次のリマインドから新しいアドレスに送信されるか</td></tr>
             <tr><td>管理者がExcelのステータスを手動で「承認済」に変更</td><td>SharePointの「確認済」がONになるか（フロー④検知）</td></tr>
             <tr><td>承認者②_メールが空の状態で承認者①が承認</td><td>1段承認として完了処理が走るか</td></tr>
@@ -945,7 +978,7 @@ SharePointリストの「確認済」列がONになっています。</div>
   </div>
 
   <div class="footer">
-    SharePoint + Power Automate 承認フロー改善設計 v2 — SharePoint列変更なし / Excel制御テーブル構成
+    SharePoint + Power Automate 承認フロー改善設計 v3 — SharePoint列変更なし / Excel制御テーブル構成 / 複数承認者 ; 区切り対応
   </div>
 
 </div>
