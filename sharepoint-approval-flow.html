@@ -245,18 +245,55 @@
       <div class="flow-step">
         <div class="step-icon cond">🔀</div>
         <div class="step-body">
-          <div class="step-label cond">Condition — フォルダ ＋ 実行者（2軸を and で統合）</div>
+          <div class="step-label cond">Condition — フォルダ ＋ 実行者（2軸を GUI で AND 接続）</div>
           <div class="step-title">対象フォルダ内 かつ 自分の操作か</div>
           <div class="step-detail">
-            条件式（「式」タブに貼り付け）:<br>
-            <pre style="margin-top:8px;">and(
-    contains(triggerOutputs()?['{Path}'], '①鈴鹿製作所'),
-    equals(triggerOutputs()?['body/Editor/Email'], 'yutaro_higashi@jp.honda')
-)</pre>
+            <strong style="color:#fcd34d;">条件アクションは GUI の2行 AND 接続で設定する（式タブの and() 一括式はエラーになる場合がある）</strong><br><br>
+            <table style="margin-top:6px;">
+              <thead><tr><th>行</th><th>左辺（式タブ）</th><th>演算子</th><th>右辺</th></tr></thead>
+              <tbody>
+                <tr>
+                  <td>1行目</td>
+                  <td><code>triggerOutputs()?['{Path}']</code></td>
+                  <td>次の値を含む</td>
+                  <td><code>①鈴鹿製作所</code></td>
+                </tr>
+                <tr>
+                  <td><strong>AND</strong></td>
+                  <td colspan="3">「＋追加」→「行の追加」→ 接続子を AND に設定</td>
+                </tr>
+                <tr>
+                  <td>2行目</td>
+                  <td><code>triggerOutputs()?['body/Editor/Email']</code></td>
+                  <td>次の値と等しい</td>
+                  <td><code>yutaro_higashi@jp.honda</code></td>
+                </tr>
+              </tbody>
+            </table>
+            <br>
             ポイント:<br>
-            ・<code>{Path}</code> は入力項目ではなくトリガーから自動取得される値。そのまま参照するだけでよい<br>
-            ・フォルダ名は部分一致（<code>contains</code>）で指定。フルパスの一致は不要<br>
+            ・<code>{Path}</code> は入力項目ではなくトリガーから自動取得。そのまま参照するだけでよい<br>
+            ・フォルダ名は部分一致（含む）で指定。Composeで実値を確認してから設定すると確実<br>
             ・「いいえの場合」は何もしない（空のまま）
+          </div>
+        </div>
+      </div>
+
+      <div class="flow-step">
+        <div class="step-icon action">🔍</div>
+        <div class="step-body">
+          <div class="step-label action">Action — 宛先の解決（Excelルーティングテーブル参照）</div>
+          <div class="step-title">フォルダ名から宛先メールを取得</div>
+          <div class="step-detail">
+            ① <code>Excel Online (Business)</code> — 表内に存在する行を一覧表示<br>
+            &nbsp;&nbsp;&nbsp;ファイル: <code>承認ルーティング.xlsx</code> / テーブル: <code>T_ルーティング</code><br><br>
+            ② <code>データ操作</code> — 配列のフィルター処理（Filter array）<br>
+            &nbsp;&nbsp;&nbsp;フィルタ式（式タブ）:<br>
+            <pre style="margin-top:6px;">contains(triggerOutputs()?['{Path}'], item()?['フォルダキーワード'])</pre>
+            ③ <code>変数</code> — 変数の初期化（文字列型 / 変数名: <code>varTo</code>）<br>
+            &nbsp;&nbsp;&nbsp;初期値（式タブ）:<br>
+            <pre>first(body('配列のフィルター処理'))?['宛先メール']</pre>
+            ※ 一致する行がない場合のフォールバックとして、<code>coalesce(first(...))?['宛先メール'], '自分のメール')</code> を使うと安全
           </div>
         </div>
       </div>
@@ -273,16 +310,11 @@
               <tbody>
                 <tr>
                   <td>宛先 (To)</td>
-                  <td>自分のメールアドレスを仮設定（※ To は必須項目のため空欄不可。送信前に変更する）</td>
+                  <td>変数 <code>varTo</code>（Excelから取得した宛先メール）<br>
+                  <span style="font-size:11px;color:var(--text-muted);">※ To は必須項目。フォールバック設定で空にならないようにする</span></td>
                 </tr>
-                <tr>
-                  <td>件名</td>
-                  <td><code>【承認依頼】</code> + 動的コンテンツ <code>Name</code></td>
-                </tr>
-                <tr>
-                  <td>本文</td>
-                  <td>HTML形式で記述（リンクを <code>&lt;a&gt;</code> タグで埋め込む）</td>
-                </tr>
+                <tr><td>件名</td><td><code>【承認依頼】</code> + 動的コンテンツ <code>Name</code></td></tr>
+                <tr><td>本文</td><td>HTML形式で記述（Section 2 参照）</td></tr>
               </tbody>
             </table>
           </div>
@@ -290,6 +322,53 @@
       </div>
 
     </div>
+  </div>
+
+  <!-- 1.5 ルーティングテーブル設計 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num amber">★</div>
+      <h2>宛先ルーティングテーブル設計（承認ルーティング.xlsx）</h2>
+    </div>
+
+    <div class="card info">
+      <h3>設計方針</h3>
+      <p style="font-size:13px;color:var(--text-muted);">
+        フォルダが増えても<strong style="color:#7dd3fc;">フローを触らずExcelに1行追加するだけ</strong>で対応できる。<br>
+        Switch アクションは件数が増えると管理が困難になるため採用しない。
+      </p>
+    </div>
+
+    <div class="card">
+      <h3>テーブル名: T_ルーティング（承認ルーティング.xlsx に作成）</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>フォルダキーワード</th><th>宛先メール</th><th>宛先名（表示用）</th></tr></thead>
+          <tbody>
+            <tr><td>①鈴鹿製作所</td><td>approver1@jp.honda</td><td>山田</td></tr>
+            <tr><td>②熊本製作所</td><td>approver2@jp.honda</td><td>田中</td></tr>
+            <tr><td>③浜松製作所</td><td>approver3@jp.honda</td><td>佐藤</td></tr>
+            <tr style="color:var(--text-muted);font-style:italic;"><td>（追加するだけ）</td><td></td><td></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
+        ファイルはSharePointの任意のドキュメントライブラリに配置。Power Automateの「Excel Online (Business)」コネクタから参照する。
+      </p>
+    </div>
+
+    <div class="card highlight">
+      <h3>フロー内での参照式</h3>
+      <pre>// ① 行一覧取得後、Filter array で Path と部分一致する行を絞り込む
+contains(triggerOutputs()?['{Path}'], item()?['フォルダキーワード'])
+
+// ② 絞り込んだ結果の先頭行から宛先メールを取得（varTo にセット）
+first(body('配列のフィルター処理'))?['宛先メール']
+
+// ③ フォールバック（一致なし時は自分に送る）
+coalesce(first(body('配列のフィルター処理'))?['宛先メール'], '自分のメール@jp.honda')</pre>
+    </div>
+
   </div>
 
   <!-- 2. メール本文（HTML形式） -->
@@ -555,10 +634,10 @@
       <ul class="insight-list">
         <li><strong>{Path} は「見た目の値」と「実際の値」がずれる</strong> — Compose で実値を確認してから条件を書く</li>
         <li><strong>条件は「業務範囲（フォルダ）」と「実行者（ユーザー）」の2軸で管理する</strong> — どちらか一方では抜け漏れが生じる</li>
-        <li><strong>複数条件は and() で一括式にする</strong> — GUIの左辺・右辺分割より式タブで完結させるほうがシンプル</li>
+        <li><strong>複数条件は GUI の2行 AND 接続が安定</strong> — and() 一括式は動作環境によってエラーになる。各行を左辺／演算子／右辺で分けるほうが確実</li>
         <li><strong>Power Automateはデータ取得と表示が別</strong> — 値が取れていても表示方法が間違うと機能しない</li>
         <li><strong>メール本文のリンクはHTML化が必須</strong> — プレーンテキストのままではクリック不可。コード表示に切り替えて &lt;a&gt; タグを使う</li>
-        <li><strong>To フィールドは必須</strong> — 下書き作成でも空欄不可。仮アドレスを入れて運用でカバー</li>
+        <li><strong>To フィールドは必須</strong> — 下書き作成でも空欄不可。Excelルーティングテーブルから宛先を動的に取得し、フォールバックで空を防ぐ</li>
       </ul>
     </div>
   </div>
