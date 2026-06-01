@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SharePoint + Power Automate 承認フロー改善設計 v4</title>
+  <title>SharePoint + Power Automate 承認フロー改善設計 v5</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -224,7 +224,7 @@
 
   <!-- Header -->
   <div class="header">
-    <h1>SharePoint + Power Automate 承認フロー改善設計 <span style="color:var(--text-muted);font-size:14px;">v4</span></h1>
+    <h1>SharePoint + Power Automate 承認フロー改善設計 <span style="color:var(--text-muted);font-size:14px;">v5</span></h1>
     <p>SharePoint列を変更せず、Excelテーブルを制御層として活用する小規模変更設計</p>
     <div class="badges">
       <span class="badge badge-blue">SharePoint</span>
@@ -987,8 +987,195 @@ SharePointリストの「確認済」列がONになっています。</div>
     </div>
   </div>
 
+  <!-- Step 1 実装ガイド -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num" style="background:var(--accent4);">S1</div>
+      <h2>Step 1 実装ガイド — 承認開始チェック → Outlook下書き作成</h2>
+    </div>
+
+    <div class="version-banner">
+      <div class="icon">🎯</div>
+      <div class="content">
+        <strong>Step 1 のスコープ</strong>
+        <ul>
+          <li>自分が「承認開始」にチェックした案件のみが対象（他人の操作はスキップ）</li>
+          <li>Outlookの下書きフォルダに自動でメールを作成・保存する</li>
+          <li>送信は手動。宛先・内容を確認してから自分で送る</li>
+          <li>Excel制御テーブル・リマインドは対象外（Step 2 以降）</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- フロー概要 -->
+    <div class="card">
+      <h3>フロー概要</h3>
+      <pre>[トリガー] SharePointリスト「承認開始」列が True に変更されたとき
+    ↓
+[条件] 更新者のメールアドレス = 自分のメールアドレス
+    └─ 不一致: スキップ（他人がチェックした案件は無視）
+    ↓
+[変数] 締切日を計算
+    addDays(
+        utcNow(),
+        if(
+            lessOrEquals(dayOfWeek(convertTimeZone(utcNow(),'UTC','Tokyo Standard Time')), 2),
+            3,
+            5
+        )
+    )
+    ↓
+[アクション] Outlook「メールの下書きを作成（Create a draft）」
+    - 宛先 : （空欄 ← 送信前に手動で入力）
+    - 件名 : 【承認依頼】@{名前}
+    - 本文 : 下記サンプル参照
+    ↓
+→ Outlook 下書きフォルダに保存される</pre>
+    </div>
+
+    <!-- Power Automate 設定値 -->
+    <div class="card">
+      <h3>Power Automate 設定値（画面入力レベル）</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>設定値</th><th>補足</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>フロー名</td>
+              <td><code>承認開始_下書き作成_自分のみ</code></td>
+              <td>名前は任意</td>
+            </tr>
+            <tr>
+              <td>トリガー</td>
+              <td><code>SharePoint — アイテムが作成または変更されたとき</code></td>
+              <td>サイトURL・リスト名を選択</td>
+            </tr>
+            <tr>
+              <td>条件①（承認開始チェック確認）</td>
+              <td><code>承認開始（Yes/No列） is equal to true</code></td>
+              <td>動的なコンテンツから選択</td>
+            </tr>
+            <tr>
+              <td>条件②（自分の操作のみ）</td>
+              <td><code>更新者 Email is equal to [自分のメールアドレス]</code></td>
+              <td>動的なコンテンツ「更新者 Email」を使用</td>
+            </tr>
+            <tr>
+              <td>締切日（式）</td>
+              <td><code>addDays(utcNow(), if(lessOrEquals(dayOfWeek(convertTimeZone(utcNow(),'UTC','Tokyo Standard Time')),2),3,5))</code></td>
+              <td>「式」タブに貼り付け。formatDateTime() で日付形式を整える</td>
+            </tr>
+            <tr>
+              <td>日付フォーマット（式）</td>
+              <td><code>formatDateTime(addDays(...),'yyyy年M月d日')</code></td>
+              <td>本文に埋め込む表示形式</td>
+            </tr>
+            <tr>
+              <td>アクション</td>
+              <td><code>Outlook — メールの下書きを作成（Create a draft）</code></td>
+              <td>「Office 365 Outlook」コネクタを使用</td>
+            </tr>
+            <tr>
+              <td>宛先（To）</td>
+              <td>空欄</td>
+              <td>送信前に手動で入力する</td>
+            </tr>
+            <tr>
+              <td>件名</td>
+              <td><code>【承認依頼】@{動的コンテンツ: 名前}</code></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>本文</td>
+              <td>下記メール本文サンプルを貼り付け</td>
+              <td>動的コンテンツを埋め込み</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- メール本文サンプル -->
+    <div class="mail-block">
+      <div class="mail-header">メール本文サンプル <span>（Outlook下書きに自動生成される内容）</span></div>
+      <div class="mail-body">件名: 【承認依頼】@{名前}
+
+@{承認者名} 様
+
+お世話になっております。
+
+下記の案件について、ご確認・承認をお願いいたします。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 案件名       ： @{名前}
+■ 登録日時     ： @{動的コンテンツ: 更新日時}
+■ 承認締切目安 ： @{締切日（式で自動計算）} までにご対応をお願いします
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+荷姿設定書をご確認のうえ、所定のセルにお名前をご記入ください。
+
+▼ 荷姿設定書
+@{動的コンテンツ: アイテムへのリンク}
+
+ご不明な点がございましたら、@{動的コンテンツ: 更新者 表示名} までご連絡ください。
+よろしくお願いいたします。
+
+@{動的コンテンツ: 更新者 表示名}</div>
+    </div>
+
+    <!-- 締切日の式 完全版 -->
+    <div class="card highlight">
+      <h3>締切日の式（Power Automate「式」タブに貼り付ける）</h3>
+      <pre>formatDateTime(
+    addDays(
+        utcNow(),
+        if(
+            lessOrEquals(
+                dayOfWeek(convertTimeZone(utcNow(), 'UTC', 'Tokyo Standard Time')),
+                2
+            ),
+            3,
+            5
+        )
+    ),
+    'yyyy年M月d日'
+)</pre>
+      <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
+        日本時間基準で曜日を判定 → 土日をまたぐ場合は+5日・それ以外は+3日 → 「2025年6月5日」形式で出力
+      </p>
+    </div>
+
+    <!-- 動作確認チェックリスト -->
+    <div class="card">
+      <h3>動作確認チェックリスト</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>確認内容</th><th>期待結果</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>自分がチェック → Outlook下書きが作成されるか</td><td>件名・本文・締切日が正しく入っている</td></tr>
+            <tr><td>2</td><td>他人がチェック → 下書きが作成されないか</td><td>スキップされて何も起きない</td></tr>
+            <tr><td>3</td><td>水〜土にチェック → 締切日が+5日の平日になるか</td><td>週末に当たらない</td></tr>
+            <tr><td>4</td><td>日〜火にチェック → 締切日が+3日の平日になるか</td><td>週末に当たらない</td></tr>
+            <tr><td>5</td><td>チェックを外して再チェック → 下書きが重複作成されないか</td><td>条件を厳密にする場合は「前の値がfalse」条件を追加</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 重複起動の防止 -->
+    <div class="card warn">
+      <h3>注意：重複起動の防止</h3>
+      <p style="font-size:13px;color:var(--text-muted);">
+        SharePointのアイテムが更新されるたびにトリガーが発火します。<br>
+        「承認開始」を一度チェックした後に別の列を編集すると、条件①（承認開始=true）が再び通ってしまい下書きが複数作られます。<br>
+        対策として条件に <strong style="color:#fbbf24;">「更新前の承認開始の値 = false」</strong> を追加してください。<br>
+        Power Automateのトリガー設定で「列が変更されたとき」に限定するか、条件式に <code>@{triggerOutputs()?['body/承認開始_Previous']}</code> を使います。
+      </p>
+    </div>
+  </div>
+
   <div class="footer">
-    SharePoint + Power Automate 承認フロー改善設計 v4 — SharePoint列変更なし / 荷姿設定書セル記名検知 / 複数承認者 ; 区切り対応
+    SharePoint + Power Automate 承認フロー改善設計 v5 — Step 1: 承認開始チェック → Outlook下書き自動生成
   </div>
 
 </div>
