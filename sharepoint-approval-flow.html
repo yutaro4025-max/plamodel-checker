@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SharePoint + Power Automate 承認フロー改善設計 v5</title>
+  <title>SharePoint + Power Automate 承認フロー改善設計 v6</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -224,7 +224,7 @@
 
   <!-- Header -->
   <div class="header">
-    <h1>SharePoint + Power Automate 承認フロー改善設計 <span style="color:var(--text-muted);font-size:14px;">v5</span></h1>
+    <h1>SharePoint + Power Automate 承認フロー改善設計 <span style="color:var(--text-muted);font-size:14px;">v6</span></h1>
     <p>SharePoint列を変更せず、Excelテーブルを制御層として活用する小規模変更設計</p>
     <div class="badges">
       <span class="badge badge-blue">SharePoint</span>
@@ -1117,10 +1117,39 @@ SharePointリストの「確認済」列がONになっています。</div>
 ▼ 荷姿設定書
 @{動的コンテンツ: アイテムへのリンク}
 
-ご不明な点がございましたら、@{動的コンテンツ: 更新者 表示名} までご連絡ください。
+ご不明な点がございましたら、@{苗字のみ（式）} までご連絡ください。
 よろしくお願いいたします。
 
-@{動的コンテンツ: 更新者 表示名}</div>
+--
+@{※ ここにOutlook「名前」署名の内容を貼り付け}</div>
+    </div>
+
+    <!-- 署名・苗字の設定メモ -->
+    <div class="card warn">
+      <h3>設定時の2点メモ</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>Power Automateでの設定方法</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong style="color:#fbbf24;">苗字のみ</strong></td>
+              <td>
+                「式」タブに下記を貼り付け<br>
+                <code>first(split(triggerOutputs()?['body/Editor/DisplayName'], ' '))</code><br>
+                <span style="font-size:11px;color:var(--text-muted);">※ 氏名が「山田 太郎」形式（苗字スペース名前）であること前提。表示名の形式が異なる場合は要確認。</span>
+              </td>
+            </tr>
+            <tr>
+              <td><strong style="color:#fbbf24;">署名「名前」の挿入</strong></td>
+              <td>
+                Outlookの「名前」署名の内容（テキストまたはHTML）をPAの本文欄に直接貼り付け。<br>
+                署名を変更した場合はPAフローの本文も合わせて更新が必要。<br>
+                <span style="font-size:11px;color:var(--text-muted);">※ PAからOutlookの保存済み署名を名前で呼び出すAPIは存在しないため直書きが唯一の方法。</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- 締切日の式 完全版 -->
@@ -1175,7 +1204,7 @@ SharePointリストの「確認済」列がONになっています。</div>
   </div>
 
   <div class="footer">
-    SharePoint + Power Automate 承認フロー改善設計 v5 — Step 1: 承認開始チェック → Outlook下書き自動生成
+    SharePoint + Power Automate 承認フロー改善設計 v6 — Step 1: 承認開始チェック → Outlook下書き自動生成
   </div>
 
 </div>
