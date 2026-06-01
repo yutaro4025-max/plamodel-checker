@@ -49,7 +49,6 @@
     .badge-green  { color: #34d399; border-color: #065f46; background: #022c22; }
     .badge-amber  { color: #fbbf24; border-color: #78350f; background: #1c0a00; }
 
-    /* Section */
     .section { margin-bottom: 40px; }
     .section-title {
       display: flex; align-items: center; gap: 10px;
@@ -65,6 +64,7 @@
     }
     .section-num.green { background: var(--accent3); }
     .section-num.amber { background: var(--accent4); }
+    .section-num.red   { background: var(--accent5); }
     .section-title h2 { font-size: 15px; font-weight: 700; color: #fff; }
 
     .card {
@@ -79,12 +79,19 @@
     .card.highlight h3 { color: #86efac; }
     .card.warn { border-color: #5a3a0a; background: #1a0e00; }
     .card.warn h3 { color: #fbbf24; }
+    .card.info { border-color: #1e3a5f; background: #0d1f3a; }
+    .card.info h3 { color: #7dd3fc; }
 
     pre {
       background: var(--code-bg); border: 1px solid var(--border);
       border-radius: 6px; padding: 14px 18px; overflow-x: auto;
       font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
       font-size: 12px; line-height: 1.8; color: #c9d1e0; white-space: pre;
+    }
+    p code, li code, td code {
+      background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+      font-size: 11px; font-family: monospace; color: #93c5fd;
+      word-break: break-all;
     }
 
     .table-wrap { overflow-x: auto; }
@@ -98,51 +105,69 @@
     td { padding: 9px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(79,142,247,.04); }
-    td code {
-      background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
-      font-size: 11px; font-family: monospace; color: #93c5fd;
-      word-break: break-all;
-    }
 
     .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
-    .tag-blue   { background: #1e3a5f; color: #93c5fd; }
     .tag-green  { background: #14532d; color: #86efac; }
     .tag-amber  { background: #451a03; color: #fcd34d; }
     .tag-red    { background: #450a0a; color: #fca5a5; }
-    .tag-gray   { background: #1e293b; color: #94a3b8; }
+    .tag-blue   { background: #1e3a5f; color: #93c5fd; }
 
     /* Flow steps */
-    .flow-steps { display: flex; flex-direction: column; gap: 0; }
-    .flow-step {
-      display: flex; gap: 16px; align-items: flex-start;
-      position: relative;
-    }
+    .flow-steps { display: flex; flex-direction: column; }
+    .flow-step { display: flex; gap: 14px; align-items: flex-start; position: relative; }
+    .flow-step + .flow-step { margin-top: 0; }
     .flow-step + .flow-step::before {
       content: '';
-      position: absolute;
-      left: 15px; top: -20px;
-      width: 2px; height: 20px;
-      background: var(--border);
+      position: absolute; left: 15px; top: -18px;
+      width: 2px; height: 18px; background: var(--border);
     }
     .step-icon {
       width: 32px; height: 32px; border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0; margin-top: 2px;
+      font-size: 15px; flex-shrink: 0; margin-top: 2px;
     }
     .step-icon.trigger { background: #1e3a5f; }
     .step-icon.cond    { background: #451a03; }
     .step-icon.action  { background: #14532d; }
-    .step-body { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; }
-    .step-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .step-body {
+      flex: 1; background: var(--surface); border: 1px solid var(--border);
+      border-radius: 8px; padding: 14px 16px; margin-bottom: 18px;
+    }
+    .step-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
     .step-label.trigger { color: #7dd3fc; }
     .step-label.cond    { color: #fcd34d; }
     .step-label.action  { color: #86efac; }
     .step-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; }
     .step-detail { font-size: 12.5px; color: var(--text-muted); }
-    .step-detail code {
-      background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
-      font-size: 11px; color: #93c5fd; word-break: break-all;
+
+    /* Pitfall cards */
+    .pitfall {
+      border: 1px solid var(--border); border-radius: 8px;
+      overflow: hidden; margin-bottom: 14px;
     }
+    .pitfall-header {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px; background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .pitfall-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--accent5); color: #fff;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .pitfall-title { font-size: 13px; font-weight: 700; color: #fff; }
+    .pitfall-body { padding: 14px 16px; background: var(--surface); }
+    .pitfall-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 600px) { .pitfall-row { grid-template-columns: 1fr; } }
+    .pitfall-col-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; margin-bottom: 6px;
+    }
+    .pitfall-col-label.bad  { color: var(--accent5); }
+    .pitfall-col-label.good { color: var(--accent3); }
+    .pitfall-col-body { font-size: 12.5px; color: var(--text-muted); }
 
     .mail-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
     .mail-header {
@@ -157,12 +182,6 @@
       font-family: monospace; line-height: 1.9; color: #c9d1e0; white-space: pre-wrap;
     }
 
-    .inline-code-block {
-      background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 6px; padding: 12px 16px; margin: 8px 0;
-      font-family: monospace; font-size: 12px; color: #93c5fd; word-break: break-all;
-    }
-
     .checklist { list-style: none; padding: 0; }
     .checklist li {
       display: flex; align-items: flex-start; gap: 10px;
@@ -170,10 +189,16 @@
       font-size: 13px; color: var(--text-muted);
     }
     .checklist li:last-child { border-bottom: none; }
-    .checklist li::before {
-      content: '□';
-      color: var(--accent); font-size: 14px; flex-shrink: 0; margin-top: 1px;
+    .checklist li::before { content: '□'; color: var(--accent3); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    .insight-list { list-style: none; padding: 0; }
+    .insight-list li {
+      padding: 8px 0 8px 20px; border-bottom: 1px solid var(--border);
+      font-size: 13px; color: var(--text-muted); position: relative;
     }
+    .insight-list li:last-child { border-bottom: none; }
+    .insight-list li::before { content: '→'; color: var(--accent); position: absolute; left: 0; }
+    .insight-list li strong { color: var(--text); }
 
     .footer {
       text-align: center; color: var(--text-dim);
@@ -188,88 +213,76 @@
   <!-- Header -->
   <div class="header">
     <h1>Power Automate 実装ガイド — 承認開始 → Outlook 下書き作成</h1>
-    <p>SharePointライブラリへのファイル作成・変更をトリガーに、自分の操作分だけ承認依頼メールの下書きを自動生成する</p>
+    <p>実装・試験運用を経て確定した構成。つまずきポイントと対処を含む。</p>
     <div class="badges">
-      <span class="badge badge-blue">Step 1</span>
-      <span class="badge badge-green">SharePoint ライブラリ</span>
-      <span class="badge badge-amber">Outlook 下書き作成のみ</span>
+      <span class="badge badge-green">✅ 動作確認済み</span>
+      <span class="badge badge-blue">SharePoint ライブラリ</span>
+      <span class="badge badge-amber">Outlook 下書き作成</span>
     </div>
   </div>
 
-  <!-- 1. フロー構成 -->
+  <!-- 1. 最終フロー構成 -->
   <div class="section">
     <div class="section-title">
-      <div class="section-num">1</div>
-      <h2>フロー構成</h2>
+      <div class="section-num green">1</div>
+      <h2>最終フロー構成（動作確認済み）</h2>
     </div>
 
     <div class="flow-steps">
 
-      <!-- トリガー -->
       <div class="flow-step">
         <div class="step-icon trigger">⚡</div>
         <div class="step-body">
           <div class="step-label trigger">Trigger</div>
           <div class="step-title">ファイルが作成または変更されたとき</div>
           <div class="step-detail">
-            コネクタ: <code>SharePoint</code><br>
-            アクション: <code>ファイルが作成または変更されたとき (プロパティのみ)</code><br>
-            サイトのアドレス: 対象のSharePointサイトURL<br>
-            ライブラリ名: 対象のドキュメントライブラリ名
+            コネクタ: <code>SharePoint</code> — ファイルが作成または変更されたとき (プロパティのみ)<br>
+            対象: 対象のSharePointライブラリ全体を監視（フォルダ絞り込みは条件で行う）
           </div>
         </div>
       </div>
 
-      <!-- 条件① フォルダ絞り込み -->
       <div class="flow-step">
         <div class="step-icon cond">🔀</div>
         <div class="step-body">
-          <div class="step-label cond">Condition 1 — フォルダ絞り込み</div>
-          <div class="step-title">指定フォルダ内のファイルか</div>
+          <div class="step-label cond">Condition — フォルダ ＋ 実行者（2軸を and で統合）</div>
+          <div class="step-title">対象フォルダ内 かつ 自分の操作か</div>
           <div class="step-detail">
-            以下の式が <strong style="color:#86efac;">true</strong> の場合のみ次へ進む<br><br>
-            <div class="inline-code-block">contains(triggerOutputs()?['{Path}'], '/対象フォルダ名/')</div>
-            ※ <code>/対象フォルダ名/</code> の部分を実際のフォルダパスに置き換える<br>
-            例: <code>contains(triggerOutputs()?['{Path}'], '/荷姿設定書/')</code><br><br>
-            <span style="color:var(--text-muted);font-size:12px;">
-              「いいえの場合」は何もしない（terminate または空のまま）でスキップ
-            </span>
+            条件式（「式」タブに貼り付け）:<br>
+            <pre style="margin-top:8px;">and(
+    contains(triggerOutputs()?['{Path}'], '①鈴鹿製作所'),
+    equals(triggerOutputs()?['body/Editor/Email'], 'yutaro_higashi@jp.honda')
+)</pre>
+            ポイント:<br>
+            ・<code>{Path}</code> は入力項目ではなくトリガーから自動取得される値。そのまま参照するだけでよい<br>
+            ・フォルダ名は部分一致（<code>contains</code>）で指定。フルパスの一致は不要<br>
+            ・「いいえの場合」は何もしない（空のまま）
           </div>
         </div>
       </div>
 
-      <!-- 条件② 更新者チェック -->
-      <div class="flow-step">
-        <div class="step-icon cond">🔀</div>
-        <div class="step-body">
-          <div class="step-label cond">Condition 2 — 自分の操作のみ</div>
-          <div class="step-title">更新者が自分か</div>
-          <div class="step-detail">
-            以下の式が <strong style="color:#86efac;">true</strong> の場合のみ次へ進む<br><br>
-            <div class="inline-code-block">equals(triggerOutputs()?['body/Editor/Email'], '自分のメールアドレス@example.com')</div>
-            ※ <code>'自分のメールアドレス@example.com'</code> を実際のメールアドレスに置き換える<br><br>
-            <span style="color:var(--text-muted);font-size:12px;">
-              将来的に複数人対応する場合はここを動的なリスト参照に切り替える（Step 2 以降）
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- アクション: 下書き作成 -->
       <div class="flow-step">
         <div class="step-icon action">✉️</div>
         <div class="step-body">
           <div class="step-label action">Action — 下書き作成</div>
           <div class="step-title">Outlook「メールの下書きを作成」</div>
           <div class="step-detail">
-            コネクタ: <code>Office 365 Outlook</code><br>
-            アクション: <code>メールの下書きを作成 (Create a draft)</code><br><br>
-            <table style="margin-top:6px;">
+            コネクタ: <code>Office 365 Outlook</code> — メールの下書きを作成 (Create a draft)<br><br>
+            <table style="margin-top:4px;">
               <thead><tr><th>フィールド</th><th>設定値</th></tr></thead>
               <tbody>
-                <tr><td>宛先 (To)</td><td>空欄 ← 送信前に手動入力</td></tr>
-                <tr><td>件名</td><td><code>【承認依頼】</code> + 動的コンテンツ <code>{Name}</code></td></tr>
-                <tr><td>本文</td><td>下記「メール本文サンプル」を参照</td></tr>
+                <tr>
+                  <td>宛先 (To)</td>
+                  <td>自分のメールアドレスを仮設定（※ To は必須項目のため空欄不可。送信前に変更する）</td>
+                </tr>
+                <tr>
+                  <td>件名</td>
+                  <td><code>【承認依頼】</code> + 動的コンテンツ <code>Name</code></td>
+                </tr>
+                <tr>
+                  <td>本文</td>
+                  <td>HTML形式で記述（リンクを <code>&lt;a&gt;</code> タグで埋め込む）</td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -279,15 +292,69 @@
     </div>
   </div>
 
-  <!-- 2. 締切日の式 -->
+  <!-- 2. メール本文（HTML形式） -->
   <div class="section">
     <div class="section-title">
-      <div class="section-num green">2</div>
-      <h2>締切日の式（本文に埋め込む）</h2>
+      <div class="section-num amber">2</div>
+      <h2>メール本文（HTML形式 — コード表示に切り替えて貼り付け）</h2>
+    </div>
+
+    <div class="card warn">
+      <h3>重要: 本文はHTML形式で記述する</h3>
+      <p style="font-size:13px;color:var(--text-muted);">
+        プレーンテキストのままではURLが表示されるだけでクリックできない。<br>
+        Power Automateの本文欄で <strong style="color:#fbbf24;">「コード表示（&lt;/&gt;）」に切り替えてから</strong> 以下のHTMLを貼り付けること。
+      </p>
+    </div>
+
+    <div class="mail-block">
+      <div class="mail-header">本文 HTML <span>（コード表示に切り替えてから貼り付け）</span></div>
+      <div class="mail-body">&lt;p&gt; 様&lt;/p&gt;
+&lt;p&gt;お世話になっております。&lt;/p&gt;
+&lt;p&gt;下記の案件について、ご確認・承認をお願いいたします。&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;
+  ■ 案件名　　　：@{triggerOutputs()?['body/{Name}']}&lt;br&gt;
+  ■ 登録日時　　：@{triggerOutputs()?['body/{Modified}']}&lt;br&gt;
+  ■ 承認締切目安：@{formatDateTime(addDays(utcNow(),if(lessOrEquals(dayOfWeek(convertTimeZone(utcNow(),'UTC','Tokyo Standard Time')),2),3,5)),'yyyy年M月d日')} までにご対応をお願いします
+&lt;/p&gt;
+&lt;hr&gt;
+&lt;p&gt;荷姿設定書をご確認のうえ、所定のセルにお名前をご記入ください。&lt;/p&gt;
+&lt;p&gt;&lt;a href="@{triggerOutputs()?['body/{Link to item}']}"&gt;▼ 荷姿設定書を開く&lt;/a&gt;&lt;/p&gt;
+&lt;p&gt;ご不明な点がございましたら、@{first(split(triggerOutputs()?['body/Editor/DisplayName'],' '))} までご連絡ください。&lt;/p&gt;
+&lt;p&gt;よろしくお願いいたします。&lt;/p&gt;
+&lt;br&gt;
+&lt;p&gt;-- &lt;br&gt;
+[ここにOutlook「名前」署名の内容を貼り付け]&lt;/p&gt;</div>
+    </div>
+
+    <div class="card info">
+      <h3>動的コンテンツ対応表</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>本文内の変数</th><th>取得される値</th></tr></thead>
+          <tbody>
+            <tr><td><code>triggerOutputs()?['body/{Name}']</code></td><td>ファイル名（案件名）</td></tr>
+            <tr><td><code>triggerOutputs()?['body/{Modified}']</code></td><td>最終更新日時</td></tr>
+            <tr><td><code>triggerOutputs()?['body/{Link to item}']</code></td><td>ファイルへのURL（<code>&lt;a&gt;</code>タグのhrefに指定）</td></tr>
+            <tr><td><code>triggerOutputs()?['body/Editor/DisplayName']</code></td><td>更新者のフルネーム</td></tr>
+            <tr><td><code>first(split(..., ' '))</code></td><td>フルネームの先頭（苗字のみ）</td></tr>
+            <tr><td>締切日の式（formatDateTime〜）</td><td>3営業日後の日付（日本時間基準）</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. 締切日の式 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num green">3</div>
+      <h2>締切日の式</h2>
     </div>
 
     <div class="card highlight">
-      <h3>Power Automate「式」タブに貼り付け</h3>
+      <h3>Power Automate「式」タブ / または HTML本文に直接埋め込む</h3>
       <pre>formatDateTime(
     addDays(
         utcNow(),
@@ -303,111 +370,201 @@
     'yyyy年M月d日'
 )</pre>
       <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
-        日本時間で曜日判定 → 日・月・火は+3日 / 水〜土は+5日（週末を避けて3営業日後に着地）
+        日本時間で曜日判定 → 日・月・火は +3日 / 水・木・金・土は +5日（全曜日で週末を回避して3営業日後に着地）
       </p>
     </div>
 
     <div class="card">
-      <h3>曜日別の動作確認</h3>
+      <h3>曜日別の着地確認</h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>チェック日</th><th>+日数</th><th>締切日</th><th>結果</th></tr></thead>
+          <thead><tr><th>チェック日</th><th>加算</th><th>締切日</th><th></th></tr></thead>
           <tbody>
-            <tr><td>日曜</td><td>+3</td><td>水曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
-            <tr><td>月曜</td><td>+3</td><td>木曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
-            <tr><td>火曜</td><td>+3</td><td>金曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
-            <tr><td>水曜</td><td>+5</td><td>月曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
-            <tr><td>木曜</td><td>+5</td><td>火曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
-            <tr><td>金曜</td><td>+5</td><td>水曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
-            <tr><td>土曜</td><td>+5</td><td>木曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
+            <tr><td>日</td><td>+3</td><td>水</td><td><span class="tag tag-green">✓</span></td></tr>
+            <tr><td>月</td><td>+3</td><td>木</td><td><span class="tag tag-green">✓</span></td></tr>
+            <tr><td>火</td><td>+3</td><td>金</td><td><span class="tag tag-green">✓</span></td></tr>
+            <tr><td>水</td><td>+5</td><td>月</td><td><span class="tag tag-green">✓</span></td></tr>
+            <tr><td>木</td><td>+5</td><td>火</td><td><span class="tag tag-green">✓</span></td></tr>
+            <tr><td>金</td><td>+5</td><td>水</td><td><span class="tag tag-green">✓</span></td></tr>
+            <tr><td>土</td><td>+5</td><td>木</td><td><span class="tag tag-green">✓</span></td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </div>
 
-  <!-- 3. メール本文サンプル -->
+  <!-- 4. つまずきポイント -->
   <div class="section">
     <div class="section-title">
-      <div class="section-num amber">3</div>
-      <h2>メール本文サンプル</h2>
+      <div class="section-num red">4</div>
+      <h2>実装時のつまずきと対処（記録）</h2>
     </div>
 
-    <div class="mail-block">
-      <div class="mail-header">本文 <span>（Power Automateの「本文」欄に貼り付け・動的コンテンツを差し込む）</span></div>
-      <div class="mail-body"> 様
-
-お世話になっております。
-
-下記の案件について、ご確認・承認をお願いいたします。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 案件名       ： [動的コンテンツ: Name]
-■ 登録日時     ： [動的コンテンツ: Last Modified]
-■ 承認締切目安 ： [式: 締切日の式（上記参照）] までにご対応をお願いします
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-荷姿設定書をご確認のうえ、所定のセルにお名前をご記入ください。
-
-▼ 荷姿設定書
-[動的コンテンツ: Link to item]
-
-ご不明な点がございましたら、[式: first(split(triggerOutputs()?['body/Editor/DisplayName'],' '))] までご連絡ください。
-よろしくお願いいたします。
-
---
-[ここにOutlook「名前」署名の内容を貼り付け]</div>
-    </div>
-
-    <div class="card warn">
-      <h3>2点の注意</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>項目</th><th>内容</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><strong style="color:#fbbf24;">苗字のみ抽出</strong></td>
-              <td>
-                「式」タブに貼り付け:<br>
-                <code>first(split(triggerOutputs()?['body/Editor/DisplayName'], ' '))</code><br>
-                <span style="font-size:11px;color:var(--text-muted);">氏名が「山田 太郎」形式（苗字 名前 の順でスペース区切り）であること前提</span>
-              </td>
-            </tr>
-            <tr>
-              <td><strong style="color:#fbbf24;">署名「名前」の挿入</strong></td>
-              <td>
-                Power AutomateからOutlookの保存済み署名を名前で呼び出すAPIは存在しないため、署名の内容をテンプレート本文に直接貼り付ける。署名を変更した際はフロー本文も合わせて更新が必要。
-              </td>
-            </tr>
-          </tbody>
-        </table>
+    <!-- ① Path -->
+    <div class="pitfall">
+      <div class="pitfall-header">
+        <div class="pitfall-num">①</div>
+        <div class="pitfall-title">フォルダ条件が成立しない（{Path} の実値と指定文字列が不一致）</div>
+      </div>
+      <div class="pitfall-body">
+        <div class="pitfall-row">
+          <div>
+            <div class="pitfall-col-label bad">原因</div>
+            <div class="pitfall-col-body">{Path} の実際の値と条件で指定した文字列がずれていた（スラッシュ位置・内部パス差異）。Composeアクションで実際の値を確認するまで見えない。</div>
+          </div>
+          <div>
+            <div class="pitfall-col-label good">対処</div>
+            <div class="pitfall-col-body">フォルダ名の部分一致（contains）に変更。フルパスの一致を求めない。<br>実値確認は Compose に <code>triggerOutputs()?['{Path}']</code> を入れてテスト実行で確認。</div>
+          </div>
+        </div>
       </div>
     </div>
+
+    <!-- ② フォルダ条件の必要性 -->
+    <div class="pitfall">
+      <div class="pitfall-header">
+        <div class="pitfall-num">②</div>
+        <div class="pitfall-title">「ユーザー条件だけでよいのでは？」という設計判断</div>
+      </div>
+      <div class="pitfall-body">
+        <div class="pitfall-row">
+          <div>
+            <div class="pitfall-col-label bad">懸念</div>
+            <div class="pitfall-col-body">自分の更新で分岐しているのだからフォルダ条件は不要では？と考えた。</div>
+          </div>
+          <div>
+            <div class="pitfall-col-label good">結論</div>
+            <div class="pitfall-col-body">ライブラリ全体を監視しているため業務外ファイルにも反応するリスクがある。<strong style="color:#86efac;">フォルダ条件は必須。</strong> フォルダ ＋ ユーザーの2軸で制御する。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ③ {Path} の扱い -->
+    <div class="pitfall">
+      <div class="pitfall-header">
+        <div class="pitfall-num">③</div>
+        <div class="pitfall-title">{Path} に値を入力する必要があるのか不明</div>
+      </div>
+      <div class="pitfall-body">
+        <div class="pitfall-row">
+          <div>
+            <div class="pitfall-col-label bad">誤解</div>
+            <div class="pitfall-col-body">{Path} は何か入力が必要なフィールドと思っていた。</div>
+          </div>
+          <div>
+            <div class="pitfall-col-label good">正解</div>
+            <div class="pitfall-col-body">{Path} はトリガーが自動的に取得する値。条件式の中で参照するだけでよく、入力は不要。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ 条件式の入れ方 -->
+    <div class="pitfall">
+      <div class="pitfall-header">
+        <div class="pitfall-num">④</div>
+        <div class="pitfall-title">条件式（equals / contains）をどちらの辺に入れるか迷う</div>
+      </div>
+      <div class="pitfall-body">
+        <div class="pitfall-row">
+          <div>
+            <div class="pitfall-col-label bad">原因</div>
+            <div class="pitfall-col-body">GUI形式（左辺・右辺）と Expression形式（式として直接書く）の違いで迷う。</div>
+          </div>
+          <div>
+            <div class="pitfall-col-label good">対処</div>
+            <div class="pitfall-col-body">条件全体を「式」タブで <code>and(contains(...), equals(...))</code> と一括で書く。GUI形式は使わない。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑤ 宛先必須 -->
+    <div class="pitfall">
+      <div class="pitfall-header">
+        <div class="pitfall-num">⑤</div>
+        <div class="pitfall-title">メール宛先が必須で保存できない</div>
+      </div>
+      <div class="pitfall-body">
+        <div class="pitfall-row">
+          <div>
+            <div class="pitfall-col-label bad">原因</div>
+            <div class="pitfall-col-body">Outlook「下書き作成」コネクタの To フィールドは必須。空欄のままではフロー保存不可。</div>
+          </div>
+          <div>
+            <div class="pitfall-col-label good">対処</div>
+            <div class="pitfall-col-body">To に自分のメールアドレスを仮設定。下書きを開いて送信前に宛先を変更する運用で対応。</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ⑥ リンクがクリックできない -->
+    <div class="pitfall">
+      <div class="pitfall-header">
+        <div class="pitfall-num">⑥</div>
+        <div class="pitfall-title">「Link to item」を埋めてもURLがクリックできない（最大のはまりどころ）</div>
+      </div>
+      <div class="pitfall-body">
+        <div class="pitfall-row">
+          <div>
+            <div class="pitfall-col-label bad">原因</div>
+            <div class="pitfall-col-body">本文がプレーンテキスト扱いになっているためURLが文字列として表示されるだけ。HTMLリンクとして認識されない。</div>
+          </div>
+          <div>
+            <div class="pitfall-col-label good">解決策</div>
+            <div class="pitfall-col-body">
+              本文欄を <strong style="color:#86efac;">「コード表示（&lt;/&gt;）」に切り替えてHTML形式で記述</strong>。<br>
+              リンクは <code>&lt;a&gt;</code> タグで生成する。<br><br>
+              <code>&lt;a href="@{triggerOutputs()?['body/{Link to item}']}"&gt;荷姿設定書を開く&lt;/a&gt;</code>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
-  <!-- 4. 動作確認チェックリスト -->
+  <!-- 5. 動作確認チェックリスト -->
   <div class="section">
     <div class="section-title">
-      <div class="section-num">4</div>
+      <div class="section-num">5</div>
       <h2>動作確認チェックリスト</h2>
     </div>
-
     <div class="card">
-      <h3>テスト手順</h3>
       <ul class="checklist">
-        <li>対象フォルダにファイルをアップロード → Outlook下書きフォルダに件名「【承認依頼】〇〇」が作成される</li>
+        <li>対象フォルダにファイルをアップロード → Outlook下書きフォルダに「【承認依頼】〇〇」が作成される</li>
         <li>別フォルダにファイルをアップロード → 下書きが作成されない（フォルダ条件で除外）</li>
-        <li>他の人がファイルを更新 → 下書きが作成されない（更新者条件で除外）</li>
-        <li>水〜土曜日にチェック → 締切日が週末にならないことを確認</li>
-        <li>苗字だけが本文に入っているか（フルネームになっていないか）確認</li>
-        <li>署名が本文末尾に正しく入っているか確認</li>
-        <li>既存の通知フローが重複していないか確認（必要に応じて旧フローを無効化）</li>
+        <li>他の人がファイルを更新 → 下書きが作成されない（ユーザー条件で除外）</li>
+        <li>「▼ 荷姿設定書を開く」リンクがクリックできる（プレーンテキストになっていないか）</li>
+        <li>締切日が週末に当たっていないか（水〜土曜に実行して確認）</li>
+        <li>苗字のみが表示されている（フルネームになっていないか）</li>
+        <li>署名が本文末尾に入っているか</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- 6. 得られた知見 -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num green">6</div>
+      <h2>この実装で得られた知見</h2>
+    </div>
+    <div class="card highlight">
+      <ul class="insight-list">
+        <li><strong>{Path} は「見た目の値」と「実際の値」がずれる</strong> — Compose で実値を確認してから条件を書く</li>
+        <li><strong>条件は「業務範囲（フォルダ）」と「実行者（ユーザー）」の2軸で管理する</strong> — どちらか一方では抜け漏れが生じる</li>
+        <li><strong>複数条件は and() で一括式にする</strong> — GUIの左辺・右辺分割より式タブで完結させるほうがシンプル</li>
+        <li><strong>Power Automateはデータ取得と表示が別</strong> — 値が取れていても表示方法が間違うと機能しない</li>
+        <li><strong>メール本文のリンクはHTML化が必須</strong> — プレーンテキストのままではクリック不可。コード表示に切り替えて &lt;a&gt; タグを使う</li>
+        <li><strong>To フィールドは必須</strong> — 下書き作成でも空欄不可。仮アドレスを入れて運用でカバー</li>
       </ul>
     </div>
   </div>
 
   <div class="footer">
-    Power Automate 実装ガイド — Step 1 / SharePointライブラリ対応 / Outlook下書き自動生成
+    Power Automate 実装ガイド — Step 1 完了 / SharePointライブラリ対応 / Outlook下書き自動生成
   </div>
 
 </div>
