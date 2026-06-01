@@ -1,0 +1,409 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>退勤リマインダー + 週次レポート - README</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Meiryo UI", "Yu Gothic UI", sans-serif; background: #f5f6fa; color: #2d2d2d; line-height: 1.7; }
+  a { color: #0078d4; }
+
+  .hero {
+    background: linear-gradient(135deg, #0078d4 0%, #005a9e 100%);
+    color: white;
+    padding: 48px 40px 40px;
+  }
+  .hero h1 { font-size: 28px; font-weight: bold; margin-bottom: 8px; }
+  .hero p  { font-size: 15px; opacity: 0.9; }
+  .badge-row { margin-top: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 12px; font-weight: bold;
+    background: rgba(255,255,255,0.2); color: white;
+  }
+
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+
+  .toc {
+    background: white; border-radius: 10px; padding: 24px 28px;
+    margin-bottom: 36px; border-left: 4px solid #0078d4;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+  .toc h2 { font-size: 15px; color: #0078d4; margin-bottom: 12px; }
+  .toc ol { padding-left: 20px; }
+  .toc li { margin: 4px 0; font-size: 14px; }
+
+  .section { margin-bottom: 44px; }
+  .section h2 {
+    font-size: 20px; font-weight: bold; color: #005a9e;
+    border-bottom: 2px solid #0078d4; padding-bottom: 8px; margin-bottom: 20px;
+  }
+  .section h3 { font-size: 16px; font-weight: bold; color: #2d2d2d; margin: 20px 0 10px; }
+
+  .card {
+    background: white; border-radius: 10px; padding: 20px 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 16px;
+  }
+
+  .flow {
+    display: flex; flex-wrap: wrap; gap: 0; align-items: center;
+    background: white; border-radius: 10px; padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+  .flow-item {
+    background: #e8f1fb; border-radius: 8px; padding: 12px 18px;
+    text-align: center; min-width: 140px;
+  }
+  .flow-item .icon { font-size: 24px; display: block; margin-bottom: 4px; }
+  .flow-item .label { font-size: 13px; font-weight: bold; color: #005a9e; }
+  .flow-item .sub { font-size: 11px; color: #666; margin-top: 2px; }
+  .flow-arrow { font-size: 22px; color: #0078d4; padding: 0 8px; }
+
+  table { width: 100%; border-collapse: collapse; background: white;
+    border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  th { background: #0078d4; color: white; padding: 10px 14px; text-align: left; font-size: 13px; }
+  td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #eee; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f8fbff; }
+
+  .step-list { list-style: none; counter-reset: step; }
+  .step-list li {
+    counter-increment: step;
+    display: flex; align-items: flex-start; gap: 14px;
+    background: white; border-radius: 8px; padding: 14px 18px;
+    margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .step-list li::before {
+    content: counter(step);
+    min-width: 28px; height: 28px; border-radius: 50%;
+    background: #0078d4; color: white;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: bold; font-size: 13px; flex-shrink: 0; margin-top: 1px;
+  }
+  .step-list li .detail { flex: 1; }
+  .step-list li .title { font-weight: bold; font-size: 14px; }
+  .step-list li .desc  { font-size: 13px; color: #555; margin-top: 3px; }
+
+  code {
+    background: #f0f4fa; border-radius: 4px; padding: 1px 6px;
+    font-family: Consolas, monospace; font-size: 13px; color: #c0392b;
+  }
+  pre {
+    background: #1e1e2e; color: #cdd6f4; border-radius: 8px;
+    padding: 16px 18px; font-family: Consolas, monospace; font-size: 13px;
+    overflow-x: auto; line-height: 1.6; margin: 12px 0;
+  }
+  pre .comment { color: #6c7086; }
+  pre .key     { color: #89b4fa; }
+  pre .val     { color: #a6e3a1; }
+
+  .alert {
+    border-radius: 8px; padding: 14px 18px; margin: 12px 0;
+    font-size: 13px; display: flex; gap: 10px; align-items: flex-start;
+  }
+  .alert-warn  { background: #fff8e1; border-left: 4px solid #f59e0b; }
+  .alert-info  { background: #e8f1fb; border-left: 4px solid #0078d4; }
+  .alert-ok    { background: #e8f8f0; border-left: 4px solid #22c55e; }
+  .alert .icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  .file-list { list-style: none; }
+  .file-list li {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 8px 0; border-bottom: 1px solid #eee; font-size: 13px;
+  }
+  .file-list li:last-child { border-bottom: none; }
+  .file-name { font-family: Consolas, monospace; color: #0078d4; font-size: 13px; min-width: 220px; }
+  .file-enc  { font-size: 11px; background: #eee; border-radius: 4px; padding: 1px 6px; color: #555; white-space: nowrap; }
+
+  .qa { margin-bottom: 10px; }
+  .qa .q { font-weight: bold; font-size: 14px; color: #005a9e; margin-bottom: 4px; }
+  .qa .a { font-size: 13px; color: #444; padding-left: 14px; }
+
+  footer { text-align: center; font-size: 12px; color: #999; padding: 32px 0 48px; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <h1>&#x1F4CB; 退勤リマインダー + 週次レポート</h1>
+  <p>出勤登録・退勤通知・週次振り返りレポートを自動化する PowerShell スクリプト群</p>
+  <div class="badge-row">
+    <span class="badge">Windows 10/11</span>
+    <span class="badge">PowerShell 5.1</span>
+    <span class="badge">Outlook 連携</span>
+    <span class="badge">OneDrive 対応</span>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- 目次 -->
+  <div class="toc">
+    <h2>&#x1F4CB; 目次</h2>
+    <ol>
+      <li><a href="#overview">システム概要</a></li>
+      <li><a href="#requirements">前提条件</a></li>
+      <li><a href="#files">ファイル構成</a></li>
+      <li><a href="#setup">セットアップ手順</a></li>
+      <li><a href="#usage">日常の使い方</a></li>
+      <li><a href="#config">CONFIG 変更箇所</a></li>
+      <li><a href="#faq">よくある質問</a></li>
+    </ol>
+  </div>
+
+  <!-- 1. システム概要 -->
+  <div class="section" id="overview">
+    <h2>1. システム概要</h2>
+    <p style="margin-bottom:20px; font-size:14px;">毎朝の出勤登録から退勤通知・週次レポート生成まで、タスクスケジューラを使って自動化します。</p>
+
+    <div class="flow">
+      <div class="flow-item">
+        <span class="icon">&#x23F0;</span>
+        <div class="label">Script-A</div>
+        <div class="sub">毎朝 定時起動<br>出勤時刻入力</div>
+      </div>
+      <span class="flow-arrow">&#x279C;</span>
+      <div class="flow-item">
+        <span class="icon">&#x1F514;</span>
+        <div class="label">Script-B</div>
+        <div class="sub">退勤 5分前<br>通知ダイアログ</div>
+      </div>
+      <span class="flow-arrow">&#x279C;</span>
+      <div class="flow-item">
+        <span class="icon">&#x1F4BE;</span>
+        <div class="label">CSV ログ</div>
+        <div class="sub">OneDrive に<br>自動保存</div>
+      </div>
+      <span class="flow-arrow">&#x279C;</span>
+      <div class="flow-item">
+        <span class="icon">&#x1F4CA;</span>
+        <div class="label">WeeklyReport</div>
+        <div class="sub">金曜のみ<br>HTML レポート生成</div>
+      </div>
+    </div>
+
+    <h3>各スクリプトの役割</h3>
+    <table>
+      <tr><th>スクリプト</th><th>起動タイミング</th><th>役割</th></tr>
+      <tr>
+        <td><code>Script-A_Register.ps1</code></td>
+        <td>毎朝（タスクスケジューラ定時起動）</td>
+        <td>出勤時間・予定退勤時間を入力。Script-B と WeeklyReport（金曜のみ）をその日分で動的登録する</td>
+      </tr>
+      <tr>
+        <td><code>Script-B_Notify.ps1</code></td>
+        <td>予定退勤の 5分前（Script-A が当日登録）</td>
+        <td>退勤準備リマインダーを表示。退勤ボタン押下で実退勤時刻を CSV に記録し、自タスクを削除する</td>
+      </tr>
+      <tr>
+        <td><code>WeeklyReport.ps1</code></td>
+        <td>金曜・予定退勤の 60分前（Script-A が当日登録）</td>
+        <td>当週の CSV ログと Outlook カレンダーを読み込み、HTML 形式の週次振り返りレポートを生成する</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- 2. 前提条件 -->
+  <div class="section" id="requirements">
+    <h2>2. 前提条件</h2>
+    <div class="card">
+      <ul style="list-style:none;">
+        <li style="padding:6px 0; border-bottom:1px solid #eee; font-size:14px;">&#x2705; Windows 10 / 11</li>
+        <li style="padding:6px 0; border-bottom:1px solid #eee; font-size:14px;">&#x2705; Windows PowerShell 5.1（OS 標準搭載）</li>
+        <li style="padding:6px 0; border-bottom:1px solid #eee; font-size:14px;">&#x2705; Microsoft Outlook がインストール済みで起動可能な状態</li>
+        <li style="padding:6px 0; border-bottom:1px solid #eee; font-size:14px;">&#x2705; OneDrive が同期済み（<code>:OneDrive</code> が設定されていること）</li>
+        <li style="padding:6px 0; font-size:14px;">&#x2705; ログオン中のユーザーでタスクスケジューラが実行できること</li>
+      </ul>
+    </div>
+    <div class="alert alert-warn">
+      <span class="icon">&#x26A0;&#xFE0F;</span>
+      <div>WeeklyReport は <strong>Outlook が起動している状態</strong>でないと正しくカレンダーデータを取得できません。金曜日の退勤前に Outlook を開いておいてください。</div>
+    </div>
+  </div>
+
+  <!-- 3. ファイル構成 -->
+  <div class="section" id="files">
+    <h2>3. ファイル構成</h2>
+    <div class="card">
+      <ul class="file-list">
+        <li>
+          <span class="file-name">Setup.bat</span>
+          <span class="file-enc">UTF-8 BOMなし</span>
+          <span>初回セットアップ用。ダブルクリックで実行</span>
+        </li>
+        <li>
+          <span class="file-name">Setup.ps1</span>
+          <span class="file-enc">UTF-8 BOM付き</span>
+          <span>セットアップのロジック本体（Setup.bat から自動呼び出し）</span>
+        </li>
+        <li>
+          <span class="file-name">Script-A_Register.ps1</span>
+          <span class="file-enc">UTF-8 BOM付き</span>
+          <span>出勤登録・タスク動的登録</span>
+        </li>
+        <li>
+          <span class="file-name">Script-B_Notify.ps1</span>
+          <span class="file-enc">UTF-8 BOM付き</span>
+          <span>退勤通知・実退勤時刻記録</span>
+        </li>
+        <li>
+          <span class="file-name">WeeklyReport.ps1</span>
+          <span class="file-enc">UTF-8 BOM付き</span>
+          <span>週次 HTML レポート生成</span>
+        </li>
+        <li>
+          <span class="file-name">logs\script_a.log</span>
+          <span class="file-enc">自動生成</span>
+          <span>Script-A の実行ログ</span>
+        </li>
+        <li>
+          <span class="file-name">logs\script_b.log</span>
+          <span class="file-enc">自動生成</span>
+          <span>Script-B の実行ログ</span>
+        </li>
+      </ul>
+    </div>
+    <div class="alert alert-warn">
+      <span class="icon">&#x26A0;&#xFE0F;</span>
+      <div>全ファイルを<strong>同じフォルダ</strong>に配置してください。フォルダパスに日本語が含まれていても動作します。</div>
+    </div>
+  </div>
+
+  <!-- 4. セットアップ -->
+  <div class="section" id="setup">
+    <h2>4. セットアップ手順（初回のみ）</h2>
+    <ol class="step-list">
+      <li>
+        <div class="detail">
+          <div class="title">全ファイルを同じフォルダに配置する</div>
+          <div class="desc">5つの .ps1 ファイルと Setup.bat・Setup.ps1 をすべて同じフォルダに入れます。</div>
+        </div>
+      </li>
+      <li>
+        <div class="detail">
+          <div class="title">WeeklyReport.ps1 の CONFIG を確認する</div>
+          <div class="desc">Outlook のカレンダーカテゴリ名が環境に合っているか確認してください（詳細は「CONFIG 変更箇所」参照）。</div>
+        </div>
+      </li>
+      <li>
+        <div class="detail">
+          <div class="title">Setup.bat をダブルクリックして実行する</div>
+          <div class="desc">ダイアログが開くので、毎朝 Script-A を起動したい時刻を <strong>HH:MM 形式</strong>（例: 08:30）で入力します。</div>
+        </div>
+      </li>
+      <li>
+        <div class="detail">
+          <div class="title">タスクスケジューラで登録を確認する</div>
+          <div class="desc"><code>Win + R</code> → <code>taskschd.msc</code> →「タスク スケジューラ ライブラリ」に <strong>AttendanceRegister</strong> があれば完了です。</div>
+        </div>
+      </li>
+    </ol>
+    <div class="alert alert-info">
+      <span class="icon">&#x2139;&#xFE0F;</span>
+      <div>起動時刻を変更したい場合は <strong>Setup.bat を再実行</strong>するだけで上書き登録されます。</div>
+    </div>
+  </div>
+
+  <!-- 5. 日常の使い方 -->
+  <div class="section" id="usage">
+    <h2>5. 日常の使い方</h2>
+
+    <h3>月曜〜木曜</h3>
+    <div class="card" style="font-size:14px;">
+      <ol style="padding-left:18px; line-height:2;">
+        <li>設定した時刻になると<strong>出勤登録ダイアログ</strong>が自動表示される</li>
+        <li>出勤時間と予定退勤時間を入力して OK</li>
+        <li>予定退勤の <strong>5分前</strong>に退勤通知が自動表示される</li>
+        <li>退勤したら「退勤しました」ボタンを押す（CSV に実退勤時刻が記録される）</li>
+      </ol>
+    </div>
+
+    <h3>金曜日</h3>
+    <div class="card" style="font-size:14px;">
+      <ol style="padding-left:18px; line-height:2;">
+        <li>月〜木と同様に出勤登録を行う</li>
+        <li>予定退勤の <strong>60分前</strong>に WeeklyReport が自動起動し、HTML レポートを生成する</li>
+        <li>予定退勤の <strong>5分前</strong>に退勤通知が表示される</li>
+      </ol>
+      <div class="alert alert-warn" style="margin-top:12px;">
+        <span class="icon">&#x26A0;&#xFE0F;</span>
+        <div>WeeklyReport 実行時に <strong>Outlook が起動している</strong>必要があります。</div>
+      </div>
+    </div>
+
+    <h3>CSV ログの保存場所</h3>
+    <div class="card" style="font-size:14px;">
+      <code>OneDrive\AttendanceLogsttendance_log.csv</code>
+      <p style="margin-top:8px; color:#555;">OneDrive フォルダ配下に自動作成されます。「OneDrive - 会社名」形式のフォルダ名にも対応しています。</p>
+    </div>
+
+    <h3>週次レポートの保存場所</h3>
+    <div class="card" style="font-size:14px;">
+      <code>OneDrive\AttendanceLogs\WeeklyReports\WeeklyReport_YYYY_WeekNN.html</code>
+      <p style="margin-top:8px; color:#555;">ブラウザで開いて確認できます。</p>
+    </div>
+  </div>
+
+  <!-- 6. CONFIG -->
+  <div class="section" id="config">
+    <h2>6. CONFIG 変更箇所</h2>
+    <p style="font-size:14px; margin-bottom:16px;">各スクリプト上部の CONFIG セクションで動作をカスタマイズできます。</p>
+
+    <h3>Script-A / Script-B / WeeklyReport 共通</h3>
+    <pre><span class="comment"># OneDrive のログ保存先（通常は変更不要）</span>
+<span class="key">$ONEDRIVE_LOG_DIR</span> = <span class="val">"<span>$</span>env:OneDrive\AttendanceLogs"</span></pre>
+    <div class="alert alert-ok">
+      <span class="icon">&#x2705;</span>
+      <div><code>:OneDrive</code> を使っているため「OneDrive - 会社名」など環境差異は自動吸収されます。通常は変更不要です。</div>
+    </div>
+
+    <h3>WeeklyReport.ps1</h3>
+    <pre><span class="comment"># Outlook カレンダーのカテゴリ名（ご自身の環境に合わせて変更）</span>
+<span class="key">$CAT_MEETING</span>    = <span class="val">"会議"</span>
+<span class="key">$CAT_PACKAGING</span> = <span class="val">"梱包"</span>
+<span class="key">$CAT_INTERNAL</span>  = <span class="val">"社内業務"</span>
+<span class="key">$CAT_OTHER</span>     = <span class="val">"その他"</span>
+
+<span class="comment"># 昼休憩時間（分）</span>
+<span class="key">$BREAK_MIN</span> = <span class="val">60</span></pre>
+    <div class="alert alert-warn">
+      <span class="icon">&#x26A0;&#xFE0F;</span>
+      <div>Outlook で実際に使っているカテゴリ名と<strong>完全一致</strong>させてください。一致しないカテゴリのイベントは「その他」に分類されます。</div>
+    </div>
+  </div>
+
+  <!-- 7. FAQ -->
+  <div class="section" id="faq">
+    <h2>7. よくある質問</h2>
+
+    <div class="card">
+      <div class="qa">
+        <div class="q">Q. 朝のダイアログが出なかった</div>
+        <div class="a">タスクスケジューラで AttendanceRegister を右クリック →「実行」で手動起動できます。また「ユーザーがログオンしているときのみ実行する」設定になっているか確認してください。</div>
+      </div>
+      <div class="qa" style="margin-top:14px;">
+        <div class="q">Q. 退勤通知が来なかった</div>
+        <div class="a">予定退勤時刻の 5分前がすでに過ぎていた場合は登録されません。また Script-A 実行時にダイアログをキャンセルした場合も登録されません。</div>
+      </div>
+      <div class="qa" style="margin-top:14px;">
+        <div class="q">Q. WeeklyReport でエラーになった</div>
+        <div class="a">Outlook が起動していない場合に発生します。金曜日は Outlook を起動した状態で作業してください。</div>
+      </div>
+      <div class="qa" style="margin-top:14px;">
+        <div class="q">Q. 起動時刻を変更したい</div>
+        <div class="a">Setup.bat を再実行して新しい時刻を入力するだけで上書き登録されます。</div>
+      </div>
+      <div class="qa" style="margin-top:14px;">
+        <div class="q">Q. Script-B のタスクが残っている</div>
+        <div class="a">退勤ボタンを押さずにダイアログを閉じた場合、自己削除が行われません。タスクスケジューラから手動で削除してください（AttendanceNotify_YYYYMMDD）。</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<footer>退勤リマインダー + 週次レポート &nbsp;|&nbsp; PowerShell 5.1 / Windows 10-11</footer>
+
+</body>
+</html>
