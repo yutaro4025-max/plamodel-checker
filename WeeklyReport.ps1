@@ -21,6 +21,10 @@ $LOG_FILENAME      = "attendance_log.csv"
 $REPORT_DIR        = "$env:OneDrive\AttendanceLogs\WeeklyReports"
 $OUTLOOK_WAIT_SEC  = 30   # Outlook起動待機秒数
 
+# 休憩時間（分）。実際の休憩時間に合わせて変更すること。
+# 労働時間 = (実退勤 - 出勤) - BREAK_MIN で計算される。
+$BREAK_MIN         = 60
+
 # --- Outlookカテゴリ名（実環境に合わせて変更）---
 $CAT_PACKAGING     = "荷姿設定"
 $CAT_MEETING       = "社内調整・会議"
@@ -164,8 +168,7 @@ function Get-AttendanceData {
     }
 
     $rows = Import-Csv -Path $csvPath -Encoding UTF8
-    # Fix: @() ensures the result is always an array even when Where-Object returns a single item.
-    # Without @(), a single-row match returns a PSCustomObject, and .Count throws under Set-StrictMode.
+    # @() で囲み、1件マッチ時でも配列として扱われるようにする（Set-StrictMode 対策）
     $weekRows = @($rows | Where-Object {
         $d = [datetime]::ParseExact($_.Date, "yyyy-MM-dd", $null)
         $d -ge $WeekRange.Start -and $d -le $WeekRange.End
@@ -176,17 +179,17 @@ function Get-AttendanceData {
         return $null
     }
 
-    $totalWorkMin  = 0
+    $totalWorkMin     = 0
     $totalOvertimeMin = 0
-    $latestEnd     = $null
-    $latestEndDate = ""
-    $workDetails   = @()
+    $latestEnd        = $null
+    $latestEndDate    = ""
+    $workDetails      = @()
 
     foreach ($row in $weekRows) {
         if ([string]::IsNullOrWhiteSpace($row.StartTime) -or
             [string]::IsNullOrWhiteSpace($row.PlannedEndTime)) { continue }
 
-        $start   = [datetime]::ParseExact($row.Date + " " + $row.StartTime,   "yyyy-MM-dd HH:mm", $null)
+        $start   = [datetime]::ParseExact($row.Date + " " + $row.StartTime,      "yyyy-MM-dd HH:mm", $null)
         $planned = [datetime]::ParseExact($row.Date + " " + $row.PlannedEndTime, "yyyy-MM-dd HH:mm", $null)
 
         $actualEnd = $planned
@@ -194,8 +197,12 @@ function Get-AttendanceData {
             $actualEnd = [datetime]::ParseExact($row.Date + " " + $row.ActualEndTime, "yyyy-MM-dd HH:mm", $null)
         }
 
-        $workMin    = ($actualEnd - $start).TotalMinutes
+        # Fix: 在籍時間から休憩時間（$BREAK_MIN）を差し引いて実働時間を算出する。
+        # 以前は休憩を含む在籍時間をそのまま使っていたため労働時間が多く表示されていた。
+        $rawMin      = ($actualEnd - $start).TotalMinutes
+        $workMin     = [Math]::Max(0, $rawMin - $BREAK_MIN)
         $overtimeMin = [Math]::Max(0, ($actualEnd - $planned).TotalMinutes)
+
         $totalWorkMin     += $workMin
         $totalOvertimeMin += $overtimeMin
 
@@ -205,19 +212,19 @@ function Get-AttendanceData {
         }
 
         $workDetails += @{
-            Date      = $row.Date
-            Start     = $row.StartTime
-            Planned   = $row.PlannedEndTime
-            Actual    = if ([string]::IsNullOrWhiteSpace($row.ActualEndTime)) { $row.PlannedEndTime } else { $row.ActualEndTime }
-            WorkMin   = [Math]::Round($workMin)
+            Date        = $row.Date
+            Start       = $row.StartTime
+            Planned     = $row.PlannedEndTime
+            Actual      = if ([string]::IsNullOrWhiteSpace($row.ActualEndTime)) { $row.PlannedEndTime } else { $row.ActualEndTime }
+            WorkMin     = [Math]::Round($workMin)
             OvertimeMin = [Math]::Round($overtimeMin)
         }
     }
 
     $avgEndTime = ""
     if ($workDetails.Count -gt 0) {
-        # Fix: Measure-Object -Property does not accept script blocks in Windows PowerShell 5.1.
-        # Use ForEach-Object to project the computed value first, then pipe to Measure-Object.
+        # Measure-Object -Property はスクリプトブロック非対応（PS 5.1）のため
+        # ForEach-Object で計算値に変換してから Average を取る
         $avgEndMin = ($workDetails | ForEach-Object {
             [int]($_.Actual.Split(":")[0]) * 60 + [int]($_.Actual.Split(":")[1])
         } | Measure-Object -Average).Average
@@ -225,13 +232,13 @@ function Get-AttendanceData {
     }
 
     return @{
-        WorkDays      = $weekRows.Count
-        TotalWorkHour = [Math]::Round($totalWorkMin / 60, 1)
+        WorkDays          = $weekRows.Count
+        TotalWorkHour     = [Math]::Round($totalWorkMin / 60, 1)
         TotalOvertimeHour = [Math]::Round($totalOvertimeMin / 60, 1)
-        AvgEndTime    = $avgEndTime
-        LatestEndDate = $latestEndDate
-        LatestEndTime = if ($null -ne $latestEnd) { $latestEnd.ToString("HH:mm") } else { "-" }
-        Details       = $workDetails
+        AvgEndTime        = $avgEndTime
+        LatestEndDate     = $latestEndDate
+        LatestEndTime     = if ($null -ne $latestEnd) { $latestEnd.ToString("HH:mm") } else { "-" }
+        Details           = $workDetails
     }
 }
 
@@ -253,6 +260,7 @@ function Get-OutlookData {
         $filtered = $items.Restrict($filter)
 
         $catHours  = @{}
+        $catEvents = @{}   # カテゴリ別イベント詳細（TOP3表示用）
         $blockMin  = 0
 
         foreach ($item in $filtered) {
@@ -264,8 +272,18 @@ function Get-OutlookData {
                 # 複数カテゴリ対応（カンマ区切り）
                 $cats = $cat -split "," | ForEach-Object { $_.Trim() }
                 foreach ($c in $cats) {
+                    # カテゴリ別合計時間
                     if (-not $catHours.ContainsKey($c)) { $catHours[$c] = 0 }
                     $catHours[$c] += $durationMin
+
+                    # カテゴリ別イベント詳細を収集
+                    if (-not $catEvents.ContainsKey($c)) { $catEvents[$c] = @() }
+                    $subj = if ([string]::IsNullOrWhiteSpace($item.Subject)) { "（件名なし）" } else { $item.Subject }
+                    $catEvents[$c] += @{
+                        Subject     = $subj
+                        StartTime   = $item.Start.ToString("MM/dd HH:mm")
+                        DurationMin = [Math]::Round($durationMin)
+                    }
                 }
 
                 # 非公開予定＝作業ブロック
@@ -275,8 +293,11 @@ function Get-OutlookData {
             } catch {}
         }
 
-        # カテゴリ別時間（時間単位に変換）
-        $result = @{ BlockHour = [Math]::Round($blockMin / 60, 1) }
+        # カテゴリ別時間（時間単位に変換）＋イベント詳細を返す
+        $result = @{
+            BlockHour = [Math]::Round($blockMin / 60, 1)
+            Events    = $catEvents
+        }
         foreach ($key in $catHours.Keys) {
             $result[$key] = [Math]::Round($catHours[$key] / 60, 1)
         }
@@ -409,6 +430,26 @@ function Build-HtmlReport {
         return 0.0
     }
 
+    # カテゴリ別 TOP3 イベントの HTML 生成ヘルパー
+    function Get-Top3Html([string]$CatName) {
+        if ($null -eq $OutlookData) { return "" }
+        if (-not $OutlookData.ContainsKey("Events")) { return "" }
+        $eventsMap = $OutlookData["Events"]
+        if (-not $eventsMap.ContainsKey($CatName)) { return "" }
+        $evList = @($eventsMap[$CatName])
+        if ($evList.Count -eq 0) { return "" }
+
+        # 所要時間降順で上位3件を取得
+        $top3 = @($evList | Sort-Object { $_.DurationMin } -Descending | Select-Object -First 3)
+        $items = $top3 | ForEach-Object {
+            $h    = [Math]::Round($_.DurationMin / 60, 1)
+            $subj = [System.Web.HttpUtility]::HtmlEncode($_.Subject)
+            "<li><span class='ev-name'>$subj</span><span class='ev-meta'>${h}h&nbsp;/$nbsp;$($_.StartTime)</span></li>"
+        }
+        $listHtml = $items -join ""
+        return "<div class='top-events'><span class='top-label'>▶ 主なイベント TOP$($top3.Count)</span><ol class='event-list'>$listHtml</ol></div>"
+    }
+
     $packH    = Get-CatHour $CAT_PACKAGING
     $meetH    = Get-CatHour $CAT_MEETING
     $troubleH = Get-CatHour $CAT_TROUBLE
@@ -443,8 +484,8 @@ function Build-HtmlReport {
             $barData += "<div class='bar-row'>"
             $barData += "<span class='bar-label'>$($d.Date.Substring(5))</span>"
             $barData += "<div class='bar-wrap'>"
-            $barPct = [Math]::Min(100, [Math]::Round($d.WorkMin / 600 * 100))
-            $ovPct  = [Math]::Min(100, [Math]::Round($d.OvertimeMin / 600 * 100))
+            $barPct = [Math]::Min(100, [Math]::Round($d.WorkMin / 480 * 100))  # 8h = 480min 基準
+            $ovPct  = [Math]::Min(100, [Math]::Round($d.OvertimeMin / 480 * 100))
             $barData += "<div class='bar-work' style='width:${barPct}%'></div>"
             if ($ovPct -gt 0) {
                 $barData += "<div class='bar-over' style='width:${ovPct}%'></div>"
@@ -458,9 +499,9 @@ function Build-HtmlReport {
         $barData = "<p style='color:#9da3b4;font-size:13px;'>退勤ログデータがありません。</p>"
     }
 
-    # カテゴリ行ヘルパー
-    function Cat-Row([string]$icon, [string]$name, [double]$h, [string]$cmt) {
-        return "<tr><td>$icon $name</td><td class='td-num'>${h}h</td><td class='td-cmt'>$cmt</td></tr>"
+    # カテゴリ行ヘルパー（TOP3 HTML を受け取り comment セルに埋め込む）
+    function Cat-Row([string]$icon, [string]$name, [double]$h, [string]$cmt, [string]$top3 = "") {
+        return "<tr><td>$icon $name</td><td class='td-num'>${h}h</td><td class='td-cmt'>$cmt$top3</td></tr>"
     }
 
     $memoHtml = if ([string]::IsNullOrWhiteSpace($NextWeekMemo)) {
@@ -469,8 +510,9 @@ function Build-HtmlReport {
         "<p style='white-space:pre-wrap;font-size:14px;color:#e8eaf0;line-height:1.7;'>$([System.Web.HttpUtility]::HtmlEncode($NextWeekMemo))</p>"
     }
 
-    $reportDate = Get-Date -Format "yyyy年MM月dd日 HH:mm"
-    $weekNum    = (Get-Date -UFormat "%V")
+    $reportDate  = Get-Date -Format "yyyy年MM月dd日 HH:mm"
+    $weekNum     = (Get-Date -UFormat "%V")
+    $breakHLabel = [Math]::Round($BREAK_MIN / 60, 1)
 
     return @"
 <!DOCTYPE html>
@@ -510,6 +552,12 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
 .td-cmt{color:var(--text2);font-size:13px;line-height:1.6;}
 .comment-box{background:rgba(79,156,249,0.08);border:1px solid rgba(79,156,249,0.25);border-radius:8px;padding:12px 16px;font-size:14px;color:#93bff7;margin-top:10px;}
 .footer{text-align:center;color:var(--text2);font-size:12px;margin-top:48px;padding-top:24px;border-top:1px solid var(--border);}
+.top-events{margin-top:8px;padding-top:6px;border-top:1px solid var(--border);}
+.top-label{font-size:11px;color:var(--text2);font-weight:600;letter-spacing:0.03em;}
+.event-list{margin:4px 0 0 18px;font-size:12px;color:var(--text2);line-height:1.9;}
+.ev-name{margin-right:6px;}
+.ev-meta{color:#6b7280;font-size:11px;}
+.note-box{font-size:11px;color:#6b7280;margin-top:6px;padding:4px 8px;border-left:2px solid var(--border2);}
 </style>
 </head>
 <body>
@@ -525,7 +573,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
   <div class="section-title">⏱️ 今週の勤怠サマリー</div>
   <div class="metrics">
     <div class="metric"><div class="metric-label">出勤日数</div><div class="metric-value">${workDays}日</div></div>
-    <div class="metric"><div class="metric-label">総労働時間</div><div class="metric-value">${workH}h</div></div>
+    <div class="metric"><div class="metric-label">実働時間（休憩${breakHLabel}h除く）</div><div class="metric-value">${workH}h</div></div>
     <div class="metric"><div class="metric-label">残業時間合計</div><div class="metric-value $(if($overtimeH -ge $TH.Overtime_High){'danger'}elseif($overtimeH -ge $TH.Overtime_Mid){'warn'}else{'ok'})">${overtimeH}h</div></div>
     <div class="metric"><div class="metric-label">平均退勤時刻</div><div class="metric-value">$avgEnd</div></div>
     <div class="metric"><div class="metric-label">最遅退勤</div><div class="metric-value">$lateTime</div></div>
@@ -538,7 +586,7 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
   <div class="section-title">📅 日別労働時間</div>
   <div class="card">
     $barData
-    <div style="font-size:11px;color:var(--text2);margin-top:10px;">■ 通常時間　■ 残業時間（予定退勤超過分）</div>
+    <div style="font-size:11px;color:var(--text2);margin-top:10px;">■ 通常時間　■ 残業時間（予定退勤超過分）　※ バー幅は8h基準</div>
   </div>
 </div>
 
@@ -547,15 +595,16 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
   <div class="section-title">🗂️ カテゴリ別時間内訳</div>
   <div class="card">
     <table>
-      <tr><th>カテゴリ</th><th>時間</th><th>コメント</th></tr>
-      $(Cat-Row "📦" $CAT_PACKAGING  $packH    $cmtPack)
-      $(Cat-Row "🤝" $CAT_MEETING   $meetH    $cmtMeet)
-      $(Cat-Row "🚨" $CAT_TROUBLE   $troubleH $cmtTrouble)
-      $(Cat-Row "📋" $CAT_ADMIN     $adminH   $cmtAdmin)
-      $(Cat-Row "📚" $CAT_LEARNING  $learnH   $cmtLearn)
-      $(Cat-Row "🔁" $CAT_FIXED     $fixedH   $cmtFixed)
-      $(Cat-Row "🏖️" $CAT_HOLIDAY   $holidayH $cmtHoliday)
+      <tr><th>カテゴリ</th><th>時間</th><th>コメント / 主なイベント TOP3</th></tr>
+      $(Cat-Row "📦" $CAT_PACKAGING  $packH    $cmtPack    (Get-Top3Html $CAT_PACKAGING))
+      $(Cat-Row "🤝" $CAT_MEETING   $meetH    $cmtMeet    (Get-Top3Html $CAT_MEETING))
+      $(Cat-Row "🚨" $CAT_TROUBLE   $troubleH $cmtTrouble (Get-Top3Html $CAT_TROUBLE))
+      $(Cat-Row "📋" $CAT_ADMIN     $adminH   $cmtAdmin   (Get-Top3Html $CAT_ADMIN))
+      $(Cat-Row "📚" $CAT_LEARNING  $learnH   $cmtLearn   (Get-Top3Html $CAT_LEARNING))
+      $(Cat-Row "🔁" $CAT_FIXED     $fixedH   $cmtFixed   (Get-Top3Html $CAT_FIXED))
+      $(Cat-Row "🏖️" $CAT_HOLIDAY   $holidayH $cmtHoliday (Get-Top3Html $CAT_HOLIDAY))
     </table>
+    <div class="note-box">※ カレンダー予定は重複登録があるため、カテゴリ合計が実働時間を超える場合があります。</div>
   </div>
 </div>
 
