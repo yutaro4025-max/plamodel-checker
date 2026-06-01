@@ -256,7 +256,7 @@
                   <td>1行目</td>
                   <td><code>triggerOutputs()?['{Path}']</code></td>
                   <td>次の値を含む</td>
-                  <td><code>①鈴鹿製作所</code></td>
+                  <td><code>①フォルダA</code></td>
                 </tr>
                 <tr>
                   <td><strong>AND</strong></td>
@@ -266,7 +266,7 @@
                   <td>2行目</td>
                   <td><code>triggerOutputs()?['body/Editor/Email']</code></td>
                   <td>次の値と等しい</td>
-                  <td><code>yutaro_higashi@jp.honda</code></td>
+                  <td><code>your-email@example.com</code></td>
                 </tr>
               </tbody>
             </table>
@@ -345,9 +345,9 @@
         <table>
           <thead><tr><th>フォルダキーワード</th><th>宛先メール</th><th>宛先名（表示用）</th></tr></thead>
           <tbody>
-            <tr><td>①鈴鹿製作所</td><td>approver1@jp.honda</td><td>山田</td></tr>
-            <tr><td>②熊本製作所</td><td>approver2@jp.honda</td><td>田中</td></tr>
-            <tr><td>③浜松製作所</td><td>approver3@jp.honda</td><td>佐藤</td></tr>
+            <tr><td>①フォルダA</td><td>approver-a@example.com</td><td>承認者A</td></tr>
+            <tr><td>②フォルダB</td><td>approver-b@example.com</td><td>承認者B</td></tr>
+            <tr><td>③フォルダC</td><td>approver-c@example.com</td><td>承認者C</td></tr>
             <tr style="color:var(--text-muted);font-style:italic;"><td>（追加するだけ）</td><td></td><td></td></tr>
           </tbody>
         </table>
@@ -366,7 +366,7 @@ contains(triggerOutputs()?['{Path}'], item()?['フォルダキーワード'])
 first(body('配列のフィルター処理'))?['宛先メール']
 
 // ③ フォールバック（一致なし時は自分に送る）
-coalesce(first(body('配列のフィルター処理'))?['宛先メール'], '自分のメール@jp.honda')</pre>
+coalesce(first(body('配列のフィルター処理'))?['宛先メール'], 'your-email@example.com')</pre>
     </div>
 
   </div>
