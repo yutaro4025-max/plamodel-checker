@@ -431,6 +431,7 @@ function Build-HtmlReport {
     }
 
     # カテゴリ別 TOP3 イベントの HTML 生成ヘルパー
+    # 同じ件名のイベントは合算して1件として扱う（複製登録の癖に対応）
     function Get-Top3Html([string]$CatName) {
         if ($null -eq $OutlookData) { return "" }
         if (-not $OutlookData.ContainsKey("Events")) { return "" }
@@ -439,12 +440,24 @@ function Build-HtmlReport {
         $evList = @($eventsMap[$CatName])
         if ($evList.Count -eq 0) { return "" }
 
-        # 所要時間降順で上位3件を取得
-        $top3 = @($evList | Sort-Object { $_.DurationMin } -Descending | Select-Object -First 3)
+        # 件名でグループ化して所要時間を合算する
+        $grouped = @{}
+        foreach ($ev in $evList) {
+            $key = $ev.Subject
+            if (-not $grouped.ContainsKey($key)) {
+                $grouped[$key] = @{ Subject = $key; DurationMin = 0; Count = 0 }
+            }
+            $grouped[$key].DurationMin += $ev.DurationMin
+            $grouped[$key].Count       += 1
+        }
+
+        # 合算後の所要時間降順で上位3件を取得
+        $top3 = @($grouped.Values | Sort-Object { $_.DurationMin } -Descending | Select-Object -First 3)
         $items = $top3 | ForEach-Object {
             $h    = [Math]::Round($_.DurationMin / 60, 1)
             $subj = [System.Web.HttpUtility]::HtmlEncode($_.Subject)
-            "<li><span class='ev-name'>$subj</span><span class='ev-meta'>${h}h&nbsp;/$nbsp;$($_.StartTime)</span></li>"
+            $cnt  = if ($_.Count -gt 1) { "<span class='ev-meta'>×$($_.Count)件・計</span>" } else { "" }
+            "<li><span class='ev-name'>$subj</span>$cnt<span class='ev-meta'>${h}h</span></li>"
         }
         $listHtml = $items -join ""
         return "<div class='top-events'><span class='top-label'>▶ 主なイベント TOP$($top3.Count)</span><ol class='event-list'>$listHtml</ol></div>"
