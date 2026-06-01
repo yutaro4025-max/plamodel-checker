@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SharePoint + Power Automate 承認フロー改善設計 v6</title>
+  <title>Power Automate 実装ガイド — 承認開始 → Outlook下書き作成</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -32,67 +32,48 @@
       padding: 40px 20px 80px;
     }
 
-    .container { max-width: 1000px; margin: 0 auto; }
+    .container { max-width: 860px; margin: 0 auto; }
 
-    /* Header */
     .header {
       border-left: 4px solid var(--accent);
-      padding: 24px 28px;
+      padding: 20px 24px;
       background: var(--surface);
       border-radius: 0 8px 8px 0;
-      margin-bottom: 12px;
+      margin-bottom: 36px;
     }
-    .header h1 { font-size: 22px; font-weight: 700; color: #fff; margin-bottom: 8px; }
-    .header p { color: var(--text-muted); font-size: 13px; }
-    .badges { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+    .header h1 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .header p  { color: var(--text-muted); font-size: 13px; }
+    .badges { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
     .badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid; }
-    .badge-blue  { color: var(--accent);  border-color: #2a4a8a; background: #0d1f40; }
-    .badge-green { color: #34d399; border-color: #065f46; background: #022c22; }
-    .badge-amber { color: #fbbf24; border-color: #78350f; background: #1c0a00; }
-    .badge-purple{ color: #c4b5fd; border-color: #4c1d95; background: #1e0a40; }
-
-    /* Version banner */
-    .version-banner {
-      background: linear-gradient(135deg, #1a2a1a, #0d1f40);
-      border: 1px solid #2a5a2a;
-      border-radius: 8px;
-      padding: 14px 20px;
-      margin-bottom: 40px;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-    }
-    .version-banner .icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
-    .version-banner .content { font-size: 13px; color: var(--text-muted); }
-    .version-banner .content strong { color: #86efac; display: block; margin-bottom: 6px; }
-    .version-banner .content ul { padding-left: 16px; }
-    .version-banner .content li { margin-bottom: 3px; }
+    .badge-blue   { color: var(--accent);  border-color: #2a4a8a; background: #0d1f40; }
+    .badge-green  { color: #34d399; border-color: #065f46; background: #022c22; }
+    .badge-amber  { color: #fbbf24; border-color: #78350f; background: #1c0a00; }
 
     /* Section */
-    .section { margin-bottom: 48px; }
+    .section { margin-bottom: 40px; }
     .section-title {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 20px; padding-bottom: 12px;
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 16px; padding-bottom: 10px;
       border-bottom: 1px solid var(--border);
     }
     .section-num {
-      width: 28px; height: 28px; border-radius: 6px;
+      width: 26px; height: 26px; border-radius: 6px;
       background: var(--accent2); color: #fff;
       font-size: 12px; font-weight: 700;
       display: flex; align-items: center; justify-content: center;
       flex-shrink: 0;
     }
     .section-num.green { background: var(--accent3); }
-    .section-title h2 { font-size: 16px; font-weight: 700; color: #fff; }
+    .section-num.amber { background: var(--accent4); }
+    .section-title h2 { font-size: 15px; font-weight: 700; color: #fff; }
 
-    /* Cards */
     .card {
       background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 20px 24px; margin-bottom: 16px;
+      border-radius: 8px; padding: 18px 22px; margin-bottom: 14px;
     }
     .card h3 {
-      font-size: 12px; font-weight: 700; color: var(--accent);
-      margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;
+      font-size: 11px; font-weight: 700; color: var(--accent);
+      margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
     }
     .card.highlight { border-color: #2a5a2a; background: #0d1a0d; }
     .card.highlight h3 { color: #86efac; }
@@ -101,7 +82,7 @@
 
     pre {
       background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 6px; padding: 16px 20px; overflow-x: auto;
+      border-radius: 6px; padding: 14px 18px; overflow-x: auto;
       font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
       font-size: 12px; line-height: 1.8; color: #c9d1e0; white-space: pre;
     }
@@ -110,113 +91,95 @@
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th {
       background: var(--surface2); color: var(--text-muted);
-      font-weight: 600; text-align: left; padding: 10px 14px;
+      font-weight: 600; text-align: left; padding: 9px 13px;
       border-bottom: 2px solid var(--border);
-      font-size: 12px; text-transform: uppercase; letter-spacing: 0.4px;
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
     }
-    td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    td { padding: 9px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
     tr:last-child td { border-bottom: none; }
     tr:hover td { background: rgba(79,142,247,.04); }
     td code {
       background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
       font-size: 11px; font-family: monospace; color: #93c5fd;
+      word-break: break-all;
     }
-    td.readonly { color: var(--text-muted); }
 
-    .tag {
-      display: inline-block; font-size: 11px; font-weight: 600;
-      padding: 2px 8px; border-radius: 4px;
-    }
+    .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
     .tag-blue   { background: #1e3a5f; color: #93c5fd; }
     .tag-green  { background: #14532d; color: #86efac; }
     .tag-amber  { background: #451a03; color: #fcd34d; }
     .tag-red    { background: #450a0a; color: #fca5a5; }
-    .tag-purple { background: #2e1065; color: #c4b5fd; }
     .tag-gray   { background: #1e293b; color: #94a3b8; }
-    .tag-locked { background: #1a1a2e; color: #4a5568; border: 1px dashed #2e3348; }
 
-    .flow-block {
-      background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 20px 24px; margin-bottom: 16px;
+    /* Flow steps */
+    .flow-steps { display: flex; flex-direction: column; gap: 0; }
+    .flow-step {
+      display: flex; gap: 16px; align-items: flex-start;
+      position: relative;
     }
-    .flow-title {
-      font-size: 12px; font-weight: 700; color: var(--accent);
-      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;
+    .flow-step + .flow-step::before {
+      content: '';
+      position: absolute;
+      left: 15px; top: -20px;
+      width: 2px; height: 20px;
+      background: var(--border);
     }
-    .flow-trigger {
-      font-size: 11px; color: var(--text-muted); margin-bottom: 12px;
+    .step-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; margin-top: 2px;
     }
-    .flow-trigger span {
-      background: #1e2a3a; border: 1px solid #2a4060;
-      color: #7dd3fc; padding: 2px 8px; border-radius: 4px; font-size: 11px;
-    }
-
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-    @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
-
-    /* Architecture diagram */
-    .arch-diagram {
-      background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 8px; padding: 24px; margin-bottom: 16px;
-    }
-    .arch-layers { display: flex; flex-direction: column; gap: 12px; }
-    .arch-layer {
-      border-radius: 6px; padding: 14px 18px;
-      display: flex; align-items: center; gap: 14px;
-    }
-    .arch-layer.sp   { background: #0d1f40; border: 1px solid #2a4a8a; }
-    .arch-layer.xl   { background: #022c22; border: 1px solid #065f46; }
-    .arch-layer.pa   { background: #2e1065; border: 1px solid #4c1d95; }
-    .arch-layer-icon { font-size: 20px; flex-shrink: 0; }
-    .arch-layer-body {}
-    .arch-layer-title { font-weight: 700; font-size: 13px; color: #fff; margin-bottom: 4px; }
-    .arch-layer-desc  { font-size: 12px; color: var(--text-muted); }
-    .arch-arrow {
-      text-align: center; font-size: 18px; color: var(--text-dim);
+    .step-icon.trigger { background: #1e3a5f; }
+    .step-icon.cond    { background: #451a03; }
+    .step-icon.action  { background: #14532d; }
+    .step-body { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 20px; }
+    .step-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+    .step-label.trigger { color: #7dd3fc; }
+    .step-label.cond    { color: #fcd34d; }
+    .step-label.action  { color: #86efac; }
+    .step-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .step-detail { font-size: 12.5px; color: var(--text-muted); }
+    .step-detail code {
+      background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+      font-size: 11px; color: #93c5fd; word-break: break-all;
     }
 
-    .mail-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 16px; }
+    .mail-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
     .mail-header {
-      background: var(--surface2); padding: 10px 16px;
+      background: var(--surface2); padding: 9px 14px;
       border-bottom: 1px solid var(--border);
       font-size: 12px; color: var(--text-muted);
       display: flex; align-items: center; gap: 8px;
     }
     .mail-header span { color: #fff; font-weight: 600; }
     .mail-body {
-      padding: 16px 20px; font-size: 12.5px;
+      padding: 14px 18px; font-size: 12.5px;
       font-family: monospace; line-height: 1.9; color: #c9d1e0; white-space: pre-wrap;
     }
 
-    .timeline { position: relative; padding-left: 24px; }
-    .timeline::before {
-      content: ''; position: absolute; left: 7px; top: 0; bottom: 0;
-      width: 2px; background: var(--border);
+    .inline-code-block {
+      background: var(--code-bg); border: 1px solid var(--border);
+      border-radius: 6px; padding: 12px 16px; margin: 8px 0;
+      font-family: monospace; font-size: 12px; color: #93c5fd; word-break: break-all;
     }
-    .timeline-item { position: relative; margin-bottom: 16px; }
-    .timeline-item::before {
-      content: ''; position: absolute; left: -21px; top: 5px;
-      width: 10px; height: 10px; border-radius: 50%;
-      background: var(--accent); border: 2px solid var(--bg);
-    }
-    .timeline-item .ti-label { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
-    .timeline-item .ti-body  { font-size: 13px; color: var(--text-muted); }
 
-    .divider { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+    .checklist { list-style: none; padding: 0; }
+    .checklist li {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 8px 0; border-bottom: 1px solid var(--border);
+      font-size: 13px; color: var(--text-muted);
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before {
+      content: '□';
+      color: var(--accent); font-size: 14px; flex-shrink: 0; margin-top: 1px;
+    }
 
     .footer {
       text-align: center; color: var(--text-dim);
-      font-size: 12px; margin-top: 64px;
-      padding-top: 24px; border-top: 1px solid var(--border);
+      font-size: 12px; margin-top: 60px;
+      padding-top: 20px; border-top: 1px solid var(--border);
     }
-
-    .reminder-level-1 { border-left: 3px solid var(--accent); }
-    .reminder-level-2 { border-left: 3px solid var(--accent4); }
-    .reminder-level-3 { border-left: 3px solid var(--accent5); }
-
-    .excel-col-key   { color: #fbbf24; font-weight: 700; }
-    .excel-col-auto  { color: #86efac; }
-    .excel-col-manual{ color: #93c5fd; }
   </style>
 </head>
 <body>
@@ -224,937 +187,107 @@
 
   <!-- Header -->
   <div class="header">
-    <h1>SharePoint + Power Automate 承認フロー改善設計 <span style="color:var(--text-muted);font-size:14px;">v6</span></h1>
-    <p>SharePoint列を変更せず、Excelテーブルを制御層として活用する小規模変更設計</p>
+    <h1>Power Automate 実装ガイド — 承認開始 → Outlook 下書き作成</h1>
+    <p>SharePointライブラリへのファイル作成・変更をトリガーに、自分の操作分だけ承認依頼メールの下書きを自動生成する</p>
     <div class="badges">
-      <span class="badge badge-blue">SharePoint</span>
-      <span class="badge badge-green">Excel制御テーブル</span>
-      <span class="badge badge-purple">Power Automate</span>
-      <span class="badge badge-amber">列変更なし</span>
-      <span class="badge badge-green">複数承認者対応（;区切り）</span>
+      <span class="badge badge-blue">Step 1</span>
+      <span class="badge badge-green">SharePoint ライブラリ</span>
+      <span class="badge badge-amber">Outlook 下書き作成のみ</span>
     </div>
   </div>
 
-  <!-- Version banner -->
-  <div class="version-banner">
-    <div class="icon">🔒</div>
-    <div class="content">
-      <strong>設計方針: SharePoint列は現状維持・Excelテーブルで裏側制御</strong>
-      <ul>
-        <li>既存列（名前 / 承認開始 / 子アイテムの数 / 更新日時 / 更新者 / 確認済）は一切変更しない</li>
-        <li>承認者情報・締切・リマインド回数・ステータスはExcelテーブルで管理</li>
-        <li>Power AutomateがExcelを読み書きして制御ロジックを実行</li>
-        <li>承認者は「;」区切りで複数指定可能。誰か1人が承認した時点で完了（ファーストレスポンス方式）</li>
-        <li>承認行為は荷姿設定書Excel内の特定セルへの記名で実施。フロー③はファイル変更検知＋セル読み取り方式に変更</li>
-        <li>Power Automateの承認コネクタは使用しない（既存Excelへの記名ルールを維持）</li>
-        <li>試験運用後に本格移行する際もSharePoint側の変更は最小限</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- アーキテクチャ -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num green">A</div>
-      <h2>アーキテクチャ概要（3層構成）</h2>
-    </div>
-
-    <div class="arch-diagram">
-      <div class="arch-layers">
-        <div class="arch-layer sp">
-          <div class="arch-layer-icon">📋</div>
-          <div class="arch-layer-body">
-            <div class="arch-layer-title">SharePoint リスト（既存・変更なし）</div>
-            <div class="arch-layer-desc">名前 / 承認開始☑ / 子アイテムの数 / 更新日時 / 更新者 / 確認済 — この6列のみ。「承認開始」チェックがトリガー起点。</div>
-          </div>
-        </div>
-        <div class="arch-arrow">↕ Power Automate が読み取り・書き込み</div>
-        <div class="arch-layer xl">
-          <div class="arch-layer-icon">📊</div>
-          <div class="arch-layer-body">
-            <div class="arch-layer-title">Excel 制御テーブル（新規・SharePoint上に配置）</div>
-            <div class="arch-layer-desc">承認者メール / 申請者メール / 締切日 / ステータス / リマインド回数 / 最終リマインド日時 / 承認結果 — すべての制御情報をここで管理。</div>
-          </div>
-        </div>
-        <div class="arch-arrow">↕ 実行エンジン</div>
-        <div class="arch-layer pa">
-          <div class="arch-layer-icon">⚡</div>
-          <div class="arch-layer-body">
-            <div class="arch-layer-title">Power Automate フロー群</div>
-            <div class="arch-layer-desc">トリガー検知 → Excel参照 → 通知送信 → Excel更新 の4ステップを自動実行。</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 1. SharePoint現状列 -->
+  <!-- 1. フロー構成 -->
   <div class="section">
     <div class="section-title">
       <div class="section-num">1</div>
-      <h2>SharePoint 現状列（変更なし）</h2>
+      <h2>フロー構成</h2>
     </div>
 
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>列名</th><th>種類</th><th>役割</th><th>フローでの使い方</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>名前</strong></td>
-            <td><code>1行テキスト</code></td>
-            <td>案件識別キー</td>
-            <td>Excelテーブルの「案件名」列と突合するキー</td>
-          </tr>
-          <tr>
-            <td><strong style="color:#fbbf24;">承認開始 ☑</strong></td>
-            <td><code>Yes/No</code></td>
-            <td><span class="tag tag-amber">トリガー起点</span></td>
-            <td>チェック ON → フロー①起動</td>
-          </tr>
-          <tr>
-            <td class="readonly">子アイテムの数</td>
-            <td><code>数値(自動)</code></td>
-            <td>参照のみ</td>
-            <td>フローでは使用しない</td>
-          </tr>
-          <tr>
-            <td class="readonly">更新日時</td>
-            <td><code>日時(自動)</code></td>
-            <td>参照のみ</td>
-            <td>リマインド経過日数の計算に利用可能</td>
-          </tr>
-          <tr>
-            <td class="readonly">更新者</td>
-            <td><code>ユーザー(自動)</code></td>
-            <td>申請者特定</td>
-            <td>申請者メールの補完に活用</td>
-          </tr>
-          <tr>
-            <td><strong style="color:#86efac;">確認済 ☑</strong></td>
-            <td><code>Yes/No</code></td>
-            <td><span class="tag tag-green">承認完了マーク</span></td>
-            <td>フロー③が承認完了時にここを ON に更新</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <div class="flow-steps">
 
-    <div class="card warn" style="margin-top:16px;">
-      <h3>現行通知の扱い</h3>
-      <p style="font-size:13px;color:var(--text-muted);">
-        「承認開始」チェック時に既存の通知フローが動いている可能性があります。新フロー導入時は<strong style="color:#fbbf24;">既存フローを一時無効化</strong>してから新フローを有効化し、二重送信を防いでください。既存フローの宛先が判明次第、Excelテーブルの初期値として転記します。
-      </p>
+      <!-- トリガー -->
+      <div class="flow-step">
+        <div class="step-icon trigger">⚡</div>
+        <div class="step-body">
+          <div class="step-label trigger">Trigger</div>
+          <div class="step-title">ファイルが作成または変更されたとき</div>
+          <div class="step-detail">
+            コネクタ: <code>SharePoint</code><br>
+            アクション: <code>ファイルが作成または変更されたとき (プロパティのみ)</code><br>
+            サイトのアドレス: 対象のSharePointサイトURL<br>
+            ライブラリ名: 対象のドキュメントライブラリ名
+          </div>
+        </div>
+      </div>
+
+      <!-- 条件① フォルダ絞り込み -->
+      <div class="flow-step">
+        <div class="step-icon cond">🔀</div>
+        <div class="step-body">
+          <div class="step-label cond">Condition 1 — フォルダ絞り込み</div>
+          <div class="step-title">指定フォルダ内のファイルか</div>
+          <div class="step-detail">
+            以下の式が <strong style="color:#86efac;">true</strong> の場合のみ次へ進む<br><br>
+            <div class="inline-code-block">contains(triggerOutputs()?['{Path}'], '/対象フォルダ名/')</div>
+            ※ <code>/対象フォルダ名/</code> の部分を実際のフォルダパスに置き換える<br>
+            例: <code>contains(triggerOutputs()?['{Path}'], '/荷姿設定書/')</code><br><br>
+            <span style="color:var(--text-muted);font-size:12px;">
+              「いいえの場合」は何もしない（terminate または空のまま）でスキップ
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 条件② 更新者チェック -->
+      <div class="flow-step">
+        <div class="step-icon cond">🔀</div>
+        <div class="step-body">
+          <div class="step-label cond">Condition 2 — 自分の操作のみ</div>
+          <div class="step-title">更新者が自分か</div>
+          <div class="step-detail">
+            以下の式が <strong style="color:#86efac;">true</strong> の場合のみ次へ進む<br><br>
+            <div class="inline-code-block">equals(triggerOutputs()?['body/Editor/Email'], '自分のメールアドレス@example.com')</div>
+            ※ <code>'自分のメールアドレス@example.com'</code> を実際のメールアドレスに置き換える<br><br>
+            <span style="color:var(--text-muted);font-size:12px;">
+              将来的に複数人対応する場合はここを動的なリスト参照に切り替える（Step 2 以降）
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- アクション: 下書き作成 -->
+      <div class="flow-step">
+        <div class="step-icon action">✉️</div>
+        <div class="step-body">
+          <div class="step-label action">Action — 下書き作成</div>
+          <div class="step-title">Outlook「メールの下書きを作成」</div>
+          <div class="step-detail">
+            コネクタ: <code>Office 365 Outlook</code><br>
+            アクション: <code>メールの下書きを作成 (Create a draft)</code><br><br>
+            <table style="margin-top:6px;">
+              <thead><tr><th>フィールド</th><th>設定値</th></tr></thead>
+              <tbody>
+                <tr><td>宛先 (To)</td><td>空欄 ← 送信前に手動入力</td></tr>
+                <tr><td>件名</td><td><code>【承認依頼】</code> + 動的コンテンツ <code>{Name}</code></td></tr>
+                <tr><td>本文</td><td>下記「メール本文サンプル」を参照</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
-  <!-- 2. Excel制御テーブル設計 -->
+  <!-- 2. 締切日の式 -->
   <div class="section">
     <div class="section-title">
-      <div class="section-num">2</div>
-      <h2>Excel 制御テーブル設計</h2>
+      <div class="section-num green">2</div>
+      <h2>締切日の式（本文に埋め込む）</h2>
     </div>
 
     <div class="card highlight">
-      <h3>ファイル配置</h3>
-      <p style="font-size:13px;color:var(--text-muted);">
-        承認管理SharePointサイトの <code>ドキュメント</code> ライブラリ内に <code>承認管理テーブル.xlsx</code> を配置。<br>
-        Power AutomateはOneDrive/SharePoint上のExcelを直接読み書きできる（「Excel Online (Business)」コネクタ使用）。
-      </p>
-    </div>
-
-    <div class="card">
-      <h3>テーブル名: T_承認管理</h3>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>列名</th><th>型</th><th>入力方法</th><th>説明</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><span class="excel-col-key">SP_案件名</span></td>
-            <td><code>テキスト</code></td>
-            <td>手動 or フロー自動</td>
-            <td>SharePoint「名前」列と一致させる結合キー</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-key">SP_アイテムID</span></td>
-            <td><code>数値</code></td>
-            <td>フロー自動入力</td>
-            <td>SharePointアイテムの内部ID（フロー①が記録）</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-manual">申請者_メール</span></td>
-            <td><code>テキスト</code></td>
-            <td>手動 or 更新者から自動取得</td>
-            <td>完了通知・差戻通知の宛先</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-manual">承認者①_メール</span></td>
-            <td><code>テキスト</code></td>
-            <td>手動入力</td>
-            <td>第1承認者のメールアドレス。複数の場合は <code>a@co.jp;b@co.jp</code> のように ; で区切る。誰か1人が承認した時点で完了（ファーストレスポンス）。</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-manual">承認者②_メール</span></td>
-            <td><code>テキスト</code></td>
-            <td>手動入力（任意）</td>
-            <td>第2段承認者。; 区切りで複数指定可。空欄の場合は1段承認として動作。</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-manual">管理者_メール</span></td>
-            <td><code>テキスト</code></td>
-            <td>手動入力</td>
-            <td>エスカレーション先。空欄の場合はCC省略</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">締切日</span></td>
-            <td><code>日付</code></td>
-            <td>フロー自動計算（手動上書き可）</td>
-            <td>承認開始日 + 3日。Excelの日付形式で保存</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">ステータス</span></td>
-            <td><code>テキスト</code></td>
-            <td>フロー自動更新</td>
-            <td>申請中 / 承認者①確認中 / 承認者②確認中 / 承認済 / 差戻 / 期限超過</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">現在の承認担当</span></td>
-            <td><code>テキスト</code></td>
-            <td>フロー自動更新</td>
-            <td>リマインド送信先。複数の場合は ; 区切りのまま保持し、フローが split() で展開して全員に送信。</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">承認者①_結果</span></td>
-            <td><code>テキスト</code></td>
-            <td>フロー自動更新</td>
-            <td>承認 / 差戻 / 未対応</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">承認者①_対応者</span></td>
-            <td><code>テキスト</code></td>
-            <td>フロー自動更新</td>
-            <td>複数指定時に実際に承認/差戻した人のメールアドレスを記録</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">承認者①_日時</span></td>
-            <td><code>日付時刻</code></td>
-            <td>フロー自動更新</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">承認者②_結果</span></td>
-            <td><code>テキスト</code></td>
-            <td>フロー自動更新</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">承認者②_日時</span></td>
-            <td><code>日付時刻</code></td>
-            <td>フロー自動更新</td>
-            <td></td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">リマインド回数</span></td>
-            <td><code>数値</code></td>
-            <td>フロー自動更新</td>
-            <td>初期値: 0。リマインド送信のたびに +1</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-auto">最終リマインド日時</span></td>
-            <td><code>日付時刻</code></td>
-            <td>フロー自動更新</td>
-            <td>24時間経過チェックに使用</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-manual">承認セル番地①</span></td>
-            <td><code>テキスト</code></td>
-            <td>手動入力</td>
-            <td>荷姿設定書内で承認者①が名前を書くセル番地。例: <code>Sheet1!B5</code>。部署ごとに異なる値を設定。</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-manual">承認セル番地②</span></td>
-            <td><code>テキスト</code></td>
-            <td>手動入力（任意）</td>
-            <td>承認者②用のセル番地。多段承認の場合のみ記入。</td>
-          </tr>
-          <tr>
-            <td><span class="excel-col-manual">備考</span></td>
-            <td><code>テキスト</code></td>
-            <td>手動入力（任意）</td>
-            <td>差戻コメント、特記事項など</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:12px;">
-      <span><span class="excel-col-key">■</span> 結合キー（必須）</span>
-      <span style="color:var(--text-muted);margin:0 4px;">|</span>
-      <span><span class="excel-col-manual">■</span> 手動入力列</span>
-      <span style="color:var(--text-muted);margin:0 4px;">|</span>
-      <span><span class="excel-col-auto">■</span> フロー自動更新列</span>
-    </div>
-
-    <hr class="divider">
-
-    <div class="card highlight">
-      <h3>事前登録の運用フロー</h3>
-      <pre style="font-size:12px;">申請者（または管理担当者）がSharePointに案件登録する前に:
-
-1. Excel「T_承認管理」テーブルに1行追加
-   → SP_案件名（SharePointの「名前」列と完全一致させる）
-   → 承認者①_メール  1人 : user@co.jp
-                    複数 : user1@co.jp;user2@co.jp;user3@co.jp  ← ; 区切り
-   → 承認者②_メール（任意・多段の場合。複数指定も同様）
-   → 管理者_メールを記入
-
-2. SharePointリストに案件を登録
-
-3. 「承認開始」にチェック
-   → Power Automate フロー①が起動
-   → ExcelからSP_案件名で行を検索
-   → ; で分割して承認者全員に同時通知
-   → 最初に承認/差戻した1名の結果で後続処理（ファーストレスポンス）</pre>
-    </div>
-  </div>
-
-  <!-- 3. Power Automate フロー構成 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num">3</div>
-      <h2>Power Automate 構成（フロー単位）</h2>
-    </div>
-
-    <!-- フロー① -->
-    <div class="flow-block">
-      <div class="flow-title">フロー① — 承認開始トリガー・初期通知</div>
-      <div class="flow-trigger">トリガー: <span>SharePoint「承認開始」列が True に変更されたとき</span></div>
-      <pre>[トリガー] SharePoint アイテム変更
-    ↓
-[条件] 承認開始 = true AND 前の値が false（二重起動防止）
-    ↓
-[アクション] ExcelテーブルT_承認管理を検索
-    - フィルタ: SP_案件名 eq '@{トリガーアイテムの名前}'
-    ↓
-[条件] 行が見つかったか？
-    ├─ NO: 管理者にアラートメール（「Excelに未登録の案件」）→ フロー終了
-    └─ YES: 続行
-    ↓
-[アクション] 変数セット: varApprovers = split(承認者①_メール, ';')
-    ※ 例: "a@co.jp;b@co.jp;c@co.jp" → ["a@co.jp","b@co.jp","c@co.jp"]
-    ↓
-[アクション] Excel行を更新
-    - SP_アイテムID = SharePointのアイテムID
-    - 締切日        = addDays(utcNow(), 3)
-    - ステータス    = '承認者①確認中'
-    - 現在の承認担当= 承認者①_メール（; 区切りのまま保持）
-    - リマインド回数= 0
-    ↓
-[アクション] Apply to each: varApprovers の各メールアドレスに対して
-    └─ 通知メール送信（宛先: 各アドレス、件名・本文は同一）
-       ※ 承認コネクタは使用しない。荷姿設定書Excelへの記名が承認行為。
-    ↓
-[アクション] 申請者へ受付完了メール送信（更新者のメールを使用）</pre>
-    </div>
-
-    <!-- フロー② -->
-    <div class="flow-block">
-      <div class="flow-title">フロー② — リマインド・期限監視（定期実行）</div>
-      <div class="flow-trigger">トリガー: <span>繰り返し: 毎日 09:00</span></div>
-      <pre>[トリガー] 繰り返し: 毎日 09:00
-    ↓
-[アクション] ExcelテーブルT_承認管理を全件取得
-    ↓
-[アクション] Apply to each（ステータス = '承認者①確認中' or '承認者②確認中' の行のみ）
-    ↓
-    [条件①] 締切日 &lt; today()
-        ├─ YES:
-        │   [Excel更新] ステータス = '期限超過'
-        │   [メール送信] 現在の承認担当 + 管理者_メールにエスカレーション
-        └─ NO:
-            [条件②] 最終リマインド日時 から 24時間以上経過している？
-                ├─ YES:
-                │   [条件③] リマインド回数 >= 5
-                │       ├─ YES: 管理者のみに「手動介入要請」メール
-                │       └─ NO:
-                │           varRemind = split(現在の承認担当, ';')
-                │           [Apply to each] varRemind 全員にリマインドメール送信
-                │           [Excel更新] リマインド回数+1、最終リマインド日時=now()
-                └─ NO: スキップ</pre>
-    </div>
-
-    <!-- フロー③ -->
-    <div class="flow-block">
-      <div class="flow-title">フロー③ — 荷姿設定書 変更検知・セル読み取り方式（承認検出）</div>
-      <div class="flow-trigger">トリガー: <span>SharePoint「荷姿設定書」フォルダ内のファイルが変更されたとき</span></div>
-      <pre>[トリガー] ファイル変更検知（荷姿設定書 保管フォルダを監視）
-    ↓
-[アクション] 変更されたファイル名を取得（拡張子除く）
-    ↓
-[アクション] T_承認管理を検索
-    - フィルタ: SP_案件名 eq '@{ファイル名}'
-    ↓
-[条件] 行が見つかった かつ ステータスが '承認者①確認中' or '承認者②確認中'
-    └─ NO: スキップ（関係ないファイル更新）
-    ↓
-[アクション] 現在のステータスに応じてセル番地を取得
-    - 承認者①確認中 → 承認セル番地①（例: Sheet1!B5）
-    - 承認者②確認中 → 承認セル番地②
-    ↓
-[アクション] Excel Online「Get a cell」
-    - ファイル: 変更された荷姿設定書
-    - セル: 上記で取得したセル番地
-    ↓
-[条件] セルに値が入っているか？（承認者名が記入されたか）
-    ├─ NO: スキップ（名前未記入 = まだ承認していない）
-    └─ YES: 承認確定
-        [Excel更新] T_承認管理
-            - 承認者①_結果 = '承認'
-            - 承認者①_対応者 = セルの値（記入された名前）
-            - 承認者①_日時 = now()
-        ↓
-        [条件] 承認者②_メールが空でないか？ かつ ステータスが承認者①確認中？
-            ├─ YES（多段承認あり）:
-            │   [Excel更新] ステータス='承認者②確認中'、現在の承認担当=承認者②_メール
-            │   varApprovers2 = split(承認者②_メール, ';')
-            │   [Apply to each] varApprovers2 全員に通知メール送信
-            └─ NO（最終承認）:
-                [Excel更新] ステータス='承認済'
-                [SharePoint更新] 「確認済」列 = True
-                [メール送信] 申請者に承認完了メール（承認者①_対応者 の名前を本文に含む）</pre>
-    </div>
-  </div>
-
-  <!-- 4. リマインド条件 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num">4</div>
-      <h2>リマインド条件設計</h2>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr><th>条件</th><th>タイミング</th><th>送信先</th><th>Excelで参照する列</th></tr>
-        </thead>
-        <tbody>
-          <tr class="reminder-level-1"><td>初期通知</td><td>承認開始チェック直後</td><td>承認者①_メール</td><td>承認者①_メール</td></tr>
-          <tr class="reminder-level-1"><td>リマインド①②</td><td>翌日以降 毎日09:00（未対応かつ回数&lt;3）</td><td>現在の承認担当</td><td>現在の承認担当 / 最終リマインド日時</td></tr>
-          <tr class="reminder-level-2"><td>リマインド③④</td><td>回数3〜4回目</td><td>現在の承認担当 + 管理者</td><td>管理者_メール</td></tr>
-          <tr class="reminder-level-3"><td>エスカレーション</td><td>締切日超過</td><td>現在の承認担当 + 管理者</td><td>締切日 / 管理者_メール</td></tr>
-          <tr class="reminder-level-3"><td>介入要請</td><td>リマインド回数 ≥ 5</td><td>管理者のみ</td><td>管理者_メール / リマインド回数</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- 5. メール文面 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num">5</div>
-      <h2>メール文面</h2>
-    </div>
-
-    <div class="mail-block">
-      <div class="mail-header">初期通知メール <span>→ 承認者宛（Excel: 承認者①_メール）</span></div>
-      <div class="mail-body">件名: 【承認依頼】@{SP_案件名} ／ 締切: @{締切日}
-
-@{承認者①_メール宛名} 様
-
-下記の案件について承認をお願いいたします。
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-■ 案件名   : @{SP_案件名}
-■ 申請者   : @{申請者_メール}
-■ 承認締切 : @{締切日}（3営業日以内）
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-【承認する場合】以下のリンクをクリックしてください。
-→ [承認する] @{承認URLリンク}
-
-【差戻す場合】以下のリンクをクリックしてください。
-→ [差戻す] @{差戻URLリンク}
-
-※本メールは自動送信です。返信は無効です。</div>
-    </div>
-
-    <div class="mail-block">
-      <div class="mail-header">リマインドメール <span>→ 現在の承認担当（Excel: 現在の承認担当）</span></div>
-      <div class="mail-body">件名: 【リマインド/@{リマインド回数}回目】@{SP_案件名} ／ 締切: @{締切日}
-
-@{現在の承認担当} 様
-
-以下の案件がまだ承認されていません。ご確認をお願いします。
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-■ 案件名        : @{SP_案件名}
-■ 締切日        : @{締切日}
-■ 申請からの経過 : @{経過日数}日
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-→ [承認する] @{承認URLリンク}
-→ [差戻す]   @{差戻URLリンク}
-
-※締切を過ぎると管理者へ自動エスカレーションされます。</div>
-    </div>
-
-    <div class="mail-block">
-      <div class="mail-header">エスカレーションメール <span>→ 承認担当 + 管理者（Excel: 管理者_メール）</span></div>
-      <div class="mail-body">件名: 【要対応】期限超過 / @{SP_案件名}
-
-管理者 様 / @{現在の承認担当} 様
-
-以下の承認案件が期限を超過しました。
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-■ 案件名          : @{SP_案件名}
-■ 現在の承認担当  : @{現在の承認担当}
-■ 締切日          : @{締切日}
-■ 超過日数        : @{超過日数}日
-■ リマインド送信回数: @{リマインド回数}回
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-承認者への直接確認または代替対応をお願いします。
-管理者はExcel制御テーブルで「現在の承認担当」を変更することで代理対応が可能です。</div>
-    </div>
-
-    <div class="mail-block">
-      <div class="mail-header">承認完了メール <span>→ 申請者（Excel: 申請者_メール）</span></div>
-      <div class="mail-body">件名: 【承認完了】@{SP_案件名}
-
-@{申請者} 様
-
-申請された案件の承認が完了しました。
-
-━━━━━━━━━━━━━━━━━━━━━━━━
-■ 案件名      : @{SP_案件名}
-■ 最終承認者  : @{最終承認者メール}
-■ 承認完了日時 : @{承認完了日時}
-━━━━━━━━━━━━━━━━━━━━━━━━
-
-SharePointリストの「確認済」列がONになっています。</div>
-    </div>
-  </div>
-
-  <!-- 6. 運用ルール -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num">6</div>
-      <h2>運用ルール</h2>
-    </div>
-
-    <div class="grid2">
-      <div class="card">
-        <h3>申請者ルール</h3>
-        <div class="timeline">
-          <div class="timeline-item">
-            <div class="ti-label">Excelに先に1行登録する</div>
-            <div class="ti-body">SP_案件名・承認者メールを記入してから「承認開始」をチェック</div>
-          </div>
-          <div class="timeline-item">
-            <div class="ti-label">案件名はSharePointと完全一致</div>
-            <div class="ti-body">スペース・全角半角のズレで検索が失敗するため注意</div>
-          </div>
-          <div class="timeline-item">
-            <div class="ti-label">取下げはExcelの「ステータス」を「取下げ」に変更</div>
-            <div class="ti-body">SharePoint側は「承認開始」を OFF に戻す</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3>承認者ルール</h3>
-        <div class="timeline">
-          <div class="timeline-item">
-            <div class="ti-label">メール内のリンクから操作</div>
-            <div class="ti-body">SharePointを直接開く必要はない</div>
-          </div>
-          <div class="timeline-item">
-            <div class="ti-label">対応期限は通知受信から3営業日</div>
-            <div class="ti-body">期限超過で管理者にエスカレーション</div>
-          </div>
-          <div class="timeline-item">
-            <div class="ti-label">代理対応は管理者に連絡</div>
-            <div class="ti-body">管理者がExcelの「現在の承認担当」を変更して対応</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>管理者ルール</h3>
-      <div class="grid2">
-        <div class="timeline">
-          <div class="timeline-item">
-            <div class="ti-label">毎朝Excelテーブルを確認</div>
-            <div class="ti-body">ステータス列でフィルタし「期限超過」「承認者①確認中」を確認</div>
-          </div>
-          <div class="timeline-item">
-            <div class="ti-label">Excelは直接編集可能</div>
-            <div class="ti-body">承認者変更・締切延長・強制完了はExcel編集で対応</div>
-          </div>
-        </div>
-        <div class="timeline">
-          <div class="timeline-item">
-            <div class="ti-label">既存フローの二重起動に注意</div>
-            <div class="ti-body">新フロー導入前に既存の「承認開始」トリガーフローを確認・無効化</div>
-          </div>
-          <div class="timeline-item">
-            <div class="ti-label">通知先が変わる場合はExcelを更新</div>
-            <div class="ti-body">SharePoint列の変更は不要。Excel1行の修正のみで完結</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- 7. テスト観点 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num">7</div>
-      <h2>テスト観点</h2>
-    </div>
-
-    <div class="card">
-      <h3>機能テスト</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>テストケース</th><th>確認内容</th><th>期待結果</th></tr></thead>
-          <tbody>
-            <tr><td>Excelに行あり + 承認開始チェック</td><td>フロー①が起動するか</td><td>承認者にメール / Excel締切日・ステータス更新</td></tr>
-            <tr><td>Excelに行なし + 承認開始チェック</td><td>エラー検知されるか</td><td>管理者に「未登録案件」アラートメール</td></tr>
-            <tr><td>案件名の不一致（スペースズレ等）</td><td>検索が失敗するか</td><td>管理者にアラート（フローが無音で止まらないこと）</td></tr>
-            <tr><td>承認者①が承認</td><td>後続処理が動くか</td><td>承認者②がいれば通知 / いなければ完了メール + 確認済ON</td></tr>
-            <tr><td>承認者①が差戻</td><td>申請者に差戻メールが届くか</td><td>Excel「備考」のコメントが本文に含まれる</td></tr>
-            <tr><td>翌日09:00時点で未対応</td><td>リマインドが届くか</td><td>リマインド①が現在の承認担当に届く</td></tr>
-            <tr><td>締切日超過</td><td>エスカレーションが起動するか</td><td>承認担当 + 管理者にエスカレーションメール</td></tr>
-            <tr><td>リマインド5回超過</td><td>送信先が管理者のみになるか</td><td>承認者へのリマインドが停止し管理者のみ受信</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="card">
-      <h3>Excel制御テーブル固有の確認</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>テストケース</th><th>確認内容</th></tr></thead>
-          <tbody>
-            <tr><td>承認者①に ; 区切りで3名登録</td><td>3名全員に通知メールが届くか</td></tr>
-            <tr><td>3名のうち1名が承認</td><td>残り2名の保留承認がキャンセルされ完了処理が走るか</td></tr>
-            <tr><td>3名のうち1名が差戻</td><td>残り2名の保留承認がキャンセルされ申請者に差戻メールが届くか</td></tr>
-            <tr><td>リマインド送信時に ; 区切り3名が登録済み</td><td>3名全員にリマインドが届くか</td></tr>
-            <tr><td>Excelの「承認者①_メール」を試験運用中に変更</td><td>次のリマインドから新しいアドレスに送信されるか</td></tr>
-            <tr><td>荷姿設定書の承認セルに名前を記入</td><td>フロー③が検知し、T_承認管理とSharePoint「確認済」が更新されるか</td></tr>
-            <tr><td>承認セル番地が間違っている（空セルを参照）</td><td>セルが空のためスキップされ、誤って承認完了にならないか</td></tr>
-            <tr><td>関係ないExcelファイルを荷姿設定書フォルダで編集</td><td>T_承認管理に合致しない案件名のためスキップされるか</td></tr>
-            <tr><td>承認者②_メールが空の状態で承認者①が承認</td><td>1段承認として完了処理が走るか</td></tr>
-            <tr><td>同一案件名が複数行登録された場合</td><td>フローが正しく1行を特定できるか（重複チェック要）</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- 8. フロー全体図 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num">8</div>
-      <h2>フロー全体図</h2>
-    </div>
-
-    <div class="card">
-      <pre>【申請者】
-    │
-    ▼  ① Excelテーブルに1行追加（承認者メールを記入）
-    ▼  ② SharePointリストに案件登録
-    ▼  ③「承認開始」にチェック ← トリガー起点
-    │
-    ├──────────────────────────────────────────────┐
-    │                                              │
-    ▼ フロー① 起動                                │
-    │                                              │
-    ├─ Excelを「SP_案件名」で検索                  │
-    │   ├─ 見つからない → 管理者にアラート → 終了 │
-    │   └─ 見つかった  → 続行                     │
-    ├─ Excel更新（締切日・ステータス・承認担当）    │
-    ├─ 申請者に受付完了メール                      │
-    └─ 承認者①に初期通知メール                    │
-                │                                  │
-                │                       フロー② 毎日09:00
-                ▼                                  │
-        【承認者①が荷姿設定書Excelの所定セルに記名】  │
-                │（承認行為 = セルへの名前記入）        │
-                │                                  │
-                │           ┌─────────────────────┘
-                │           │
-             [未対応]    フロー② 毎日09:00
-                │           │
-                │           ├─[リマインド条件]
-                │           │  全承認担当にリマインドメール
-                │           │  Excel更新（回数+1）
-                │           │
-                │           └─[期限超過条件]
-                │              承認担当+管理者にエスカレーション
-                │
-                ▼
-        【フロー③ が荷姿設定書フォルダのファイル変更を検知】
-                │
-                ▼
-        承認セル番地① の値を読み取り
-                │
-    ┌───────────┴───────────┐
-    │                       │
-  [セルに名前あり]        [セルが空]
-  = 承認確定               = スキップ（まだ未記入）
-    │
-    ▼
-    ├─[承認者②あり] Excel更新（ステータス='承認者②確認中'）
-    │               承認者②全員に通知メール → 同サイクルを繰り返す
-    │
-    └─[承認者②なし] Excel更新（ステータス='承認済'）
-                    SharePoint「確認済」列を True に更新
-                    申請者に承認完了メール（記名者名を記載）
-
-                           ┌─────────────────────────┐
-【管理者】 ←───────────────│  Excel制御テーブル        │
-                           │  T_承認管理               │
-                           │  ・ステータスでフィルタ    │
-                           │  ・承認者変更は列を直接編集│
-                           │  ・締切延長は日付列を変更  │
-                           └─────────────────────────┘</pre>
-    </div>
-  </div>
-
-  <!-- 9. 導入ステップ -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num" style="background:var(--accent3);">9</div>
-      <h2>導入ステップ（試験運用想定）</h2>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead><tr><th>フェーズ</th><th>作業内容</th><th>工数目安</th><th>SharePoint変更</th></tr></thead>
-        <tbody>
-          <tr>
-            <td><span class="tag tag-blue">Phase 1</span></td>
-            <td>Excelテーブル作成 + フロー①（通知のみ）</td>
-            <td>1日</td>
-            <td class="readonly"><span class="tag tag-locked">なし</span></td>
-          </tr>
-          <tr>
-            <td><span class="tag tag-blue">Phase 2</span></td>
-            <td>フロー②（リマインド・期限超過）追加</td>
-            <td>1日</td>
-            <td class="readonly"><span class="tag tag-locked">なし</span></td>
-          </tr>
-          <tr>
-            <td><span class="tag tag-amber">Phase 3</span></td>
-            <td>フロー③（荷姿設定書ファイル変更検知・セル読み取り・承認完了処理）追加</td>
-            <td>1日</td>
-            <td class="readonly"><span class="tag tag-green">確認済列をONにするのみ</span></td>
-          </tr>
-          <tr>
-            <td><span class="tag tag-amber">Phase 4</span></td>
-            <td>試験運用・テスト実施・Excelテーブルの運用定着</td>
-            <td>1〜2週間</td>
-            <td class="readonly"><span class="tag tag-locked">なし</span></td>
-          </tr>
-          <tr>
-            <td><span class="tag tag-gray">Phase 5</span></td>
-            <td>本格運用 / 必要に応じてSharePoint列追加を検討</td>
-            <td>—</td>
-            <td class="readonly"><span class="tag tag-gray">検討事項</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="card highlight" style="margin-top:16px;">
-      <h3>既存フローの確認（必須・導入前）</h3>
-      <p style="font-size:13px;color:var(--text-muted);">
-        「承認開始」チェック時に既存の通知フローが動いている可能性があります。<br>
-        Power Automate管理画面で <strong style="color:#86efac;">「承認開始」をトリガーとするフロー</strong> を検索し、
-        宛先・挙動を確認してください。新フロー稼働後は既存フローを<strong style="color:#86efac;">無効化</strong>して二重送信を防ぎます。<br>
-        既存フローの宛先が判明したら、Excelテーブルの初期値として転記することで完全に引き継げます。
-      </p>
-    </div>
-  </div>
-
-  <!-- Step 1 実装ガイド -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num" style="background:var(--accent4);">S1</div>
-      <h2>Step 1 実装ガイド — 承認開始チェック → Outlook下書き作成</h2>
-    </div>
-
-    <div class="version-banner">
-      <div class="icon">🎯</div>
-      <div class="content">
-        <strong>Step 1 のスコープ</strong>
-        <ul>
-          <li>自分が「承認開始」にチェックした案件のみが対象（他人の操作はスキップ）</li>
-          <li>Outlookの下書きフォルダに自動でメールを作成・保存する</li>
-          <li>送信は手動。宛先・内容を確認してから自分で送る</li>
-          <li>Excel制御テーブル・リマインドは対象外（Step 2 以降）</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- フロー概要 -->
-    <div class="card">
-      <h3>フロー概要</h3>
-      <pre>[トリガー] SharePointリスト「承認開始」列が True に変更されたとき
-    ↓
-[条件] 更新者のメールアドレス = 自分のメールアドレス
-    └─ 不一致: スキップ（他人がチェックした案件は無視）
-    ↓
-[変数] 締切日を計算
-    addDays(
-        utcNow(),
-        if(
-            lessOrEquals(dayOfWeek(convertTimeZone(utcNow(),'UTC','Tokyo Standard Time')), 2),
-            3,
-            5
-        )
-    )
-    ↓
-[アクション] Outlook「メールの下書きを作成（Create a draft）」
-    - 宛先 : （空欄 ← 送信前に手動で入力）
-    - 件名 : 【承認依頼】@{名前}
-    - 本文 : 下記サンプル参照
-    ↓
-→ Outlook 下書きフォルダに保存される</pre>
-    </div>
-
-    <!-- Power Automate 設定値 -->
-    <div class="card">
-      <h3>Power Automate 設定値（画面入力レベル）</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>項目</th><th>設定値</th><th>補足</th></tr></thead>
-          <tbody>
-            <tr>
-              <td>フロー名</td>
-              <td><code>承認開始_下書き作成_自分のみ</code></td>
-              <td>名前は任意</td>
-            </tr>
-            <tr>
-              <td>トリガー</td>
-              <td><code>SharePoint — アイテムが作成または変更されたとき</code></td>
-              <td>サイトURL・リスト名を選択</td>
-            </tr>
-            <tr>
-              <td>条件①（承認開始チェック確認）</td>
-              <td><code>承認開始（Yes/No列） is equal to true</code></td>
-              <td>動的なコンテンツから選択</td>
-            </tr>
-            <tr>
-              <td>条件②（自分の操作のみ）</td>
-              <td><code>更新者 Email is equal to [自分のメールアドレス]</code></td>
-              <td>動的なコンテンツ「更新者 Email」を使用</td>
-            </tr>
-            <tr>
-              <td>締切日（式）</td>
-              <td><code>addDays(utcNow(), if(lessOrEquals(dayOfWeek(convertTimeZone(utcNow(),'UTC','Tokyo Standard Time')),2),3,5))</code></td>
-              <td>「式」タブに貼り付け。formatDateTime() で日付形式を整える</td>
-            </tr>
-            <tr>
-              <td>日付フォーマット（式）</td>
-              <td><code>formatDateTime(addDays(...),'yyyy年M月d日')</code></td>
-              <td>本文に埋め込む表示形式</td>
-            </tr>
-            <tr>
-              <td>アクション</td>
-              <td><code>Outlook — メールの下書きを作成（Create a draft）</code></td>
-              <td>「Office 365 Outlook」コネクタを使用</td>
-            </tr>
-            <tr>
-              <td>宛先（To）</td>
-              <td>空欄</td>
-              <td>送信前に手動で入力する</td>
-            </tr>
-            <tr>
-              <td>件名</td>
-              <td><code>【承認依頼】@{動的コンテンツ: 名前}</code></td>
-              <td></td>
-            </tr>
-            <tr>
-              <td>本文</td>
-              <td>下記メール本文サンプルを貼り付け</td>
-              <td>動的コンテンツを埋め込み</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- メール本文サンプル -->
-    <div class="mail-block">
-      <div class="mail-header">メール本文サンプル <span>（Outlook下書きに自動生成される内容）</span></div>
-      <div class="mail-body">件名: 【承認依頼】@{名前}
-
-@{承認者名} 様
-
-お世話になっております。
-
-下記の案件について、ご確認・承認をお願いいたします。
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-■ 案件名       ： @{名前}
-■ 登録日時     ： @{動的コンテンツ: 更新日時}
-■ 承認締切目安 ： @{締切日（式で自動計算）} までにご対応をお願いします
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-荷姿設定書をご確認のうえ、所定のセルにお名前をご記入ください。
-
-▼ 荷姿設定書
-@{動的コンテンツ: アイテムへのリンク}
-
-ご不明な点がございましたら、@{苗字のみ（式）} までご連絡ください。
-よろしくお願いいたします。
-
---
-@{※ ここにOutlook「名前」署名の内容を貼り付け}</div>
-    </div>
-
-    <!-- 署名・苗字の設定メモ -->
-    <div class="card warn">
-      <h3>設定時の2点メモ</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>項目</th><th>Power Automateでの設定方法</th></tr></thead>
-          <tbody>
-            <tr>
-              <td><strong style="color:#fbbf24;">苗字のみ</strong></td>
-              <td>
-                「式」タブに下記を貼り付け<br>
-                <code>first(split(triggerOutputs()?['body/Editor/DisplayName'], ' '))</code><br>
-                <span style="font-size:11px;color:var(--text-muted);">※ 氏名が「山田 太郎」形式（苗字スペース名前）であること前提。表示名の形式が異なる場合は要確認。</span>
-              </td>
-            </tr>
-            <tr>
-              <td><strong style="color:#fbbf24;">署名「名前」の挿入</strong></td>
-              <td>
-                Outlookの「名前」署名の内容（テキストまたはHTML）をPAの本文欄に直接貼り付け。<br>
-                署名を変更した場合はPAフローの本文も合わせて更新が必要。<br>
-                <span style="font-size:11px;color:var(--text-muted);">※ PAからOutlookの保存済み署名を名前で呼び出すAPIは存在しないため直書きが唯一の方法。</span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- 締切日の式 完全版 -->
-    <div class="card highlight">
-      <h3>締切日の式（Power Automate「式」タブに貼り付ける）</h3>
+      <h3>Power Automate「式」タブに貼り付け</h3>
       <pre>formatDateTime(
     addDays(
         utcNow(),
@@ -1170,41 +303,111 @@ SharePointリストの「確認済」列がONになっています。</div>
     'yyyy年M月d日'
 )</pre>
       <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
-        日本時間基準で曜日を判定 → 土日をまたぐ場合は+5日・それ以外は+3日 → 「2025年6月5日」形式で出力
+        日本時間で曜日判定 → 日・月・火は+3日 / 水〜土は+5日（週末を避けて3営業日後に着地）
       </p>
     </div>
 
-    <!-- 動作確認チェックリスト -->
     <div class="card">
-      <h3>動作確認チェックリスト</h3>
+      <h3>曜日別の動作確認</h3>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>#</th><th>確認内容</th><th>期待結果</th></tr></thead>
+          <thead><tr><th>チェック日</th><th>+日数</th><th>締切日</th><th>結果</th></tr></thead>
           <tbody>
-            <tr><td>1</td><td>自分がチェック → Outlook下書きが作成されるか</td><td>件名・本文・締切日が正しく入っている</td></tr>
-            <tr><td>2</td><td>他人がチェック → 下書きが作成されないか</td><td>スキップされて何も起きない</td></tr>
-            <tr><td>3</td><td>水〜土にチェック → 締切日が+5日の平日になるか</td><td>週末に当たらない</td></tr>
-            <tr><td>4</td><td>日〜火にチェック → 締切日が+3日の平日になるか</td><td>週末に当たらない</td></tr>
-            <tr><td>5</td><td>チェックを外して再チェック → 下書きが重複作成されないか</td><td>条件を厳密にする場合は「前の値がfalse」条件を追加</td></tr>
+            <tr><td>日曜</td><td>+3</td><td>水曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
+            <tr><td>月曜</td><td>+3</td><td>木曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
+            <tr><td>火曜</td><td>+3</td><td>金曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
+            <tr><td>水曜</td><td>+5</td><td>月曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
+            <tr><td>木曜</td><td>+5</td><td>火曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
+            <tr><td>金曜</td><td>+5</td><td>水曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
+            <tr><td>土曜</td><td>+5</td><td>木曜</td><td><span class="tag tag-green">✓ 平日</span></td></tr>
           </tbody>
         </table>
       </div>
     </div>
+  </div>
 
-    <!-- 重複起動の防止 -->
+  <!-- 3. メール本文サンプル -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num amber">3</div>
+      <h2>メール本文サンプル</h2>
+    </div>
+
+    <div class="mail-block">
+      <div class="mail-header">本文 <span>（Power Automateの「本文」欄に貼り付け・動的コンテンツを差し込む）</span></div>
+      <div class="mail-body"> 様
+
+お世話になっております。
+
+下記の案件について、ご確認・承認をお願いいたします。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+■ 案件名       ： [動的コンテンツ: Name]
+■ 登録日時     ： [動的コンテンツ: Last Modified]
+■ 承認締切目安 ： [式: 締切日の式（上記参照）] までにご対応をお願いします
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+荷姿設定書をご確認のうえ、所定のセルにお名前をご記入ください。
+
+▼ 荷姿設定書
+[動的コンテンツ: Link to item]
+
+ご不明な点がございましたら、[式: first(split(triggerOutputs()?['body/Editor/DisplayName'],' '))] までご連絡ください。
+よろしくお願いいたします。
+
+--
+[ここにOutlook「名前」署名の内容を貼り付け]</div>
+    </div>
+
     <div class="card warn">
-      <h3>注意：重複起動の防止</h3>
-      <p style="font-size:13px;color:var(--text-muted);">
-        SharePointのアイテムが更新されるたびにトリガーが発火します。<br>
-        「承認開始」を一度チェックした後に別の列を編集すると、条件①（承認開始=true）が再び通ってしまい下書きが複数作られます。<br>
-        対策として条件に <strong style="color:#fbbf24;">「更新前の承認開始の値 = false」</strong> を追加してください。<br>
-        Power Automateのトリガー設定で「列が変更されたとき」に限定するか、条件式に <code>@{triggerOutputs()?['body/承認開始_Previous']}</code> を使います。
-      </p>
+      <h3>2点の注意</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>項目</th><th>内容</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong style="color:#fbbf24;">苗字のみ抽出</strong></td>
+              <td>
+                「式」タブに貼り付け:<br>
+                <code>first(split(triggerOutputs()?['body/Editor/DisplayName'], ' '))</code><br>
+                <span style="font-size:11px;color:var(--text-muted);">氏名が「山田 太郎」形式（苗字 名前 の順でスペース区切り）であること前提</span>
+              </td>
+            </tr>
+            <tr>
+              <td><strong style="color:#fbbf24;">署名「名前」の挿入</strong></td>
+              <td>
+                Power AutomateからOutlookの保存済み署名を名前で呼び出すAPIは存在しないため、署名の内容をテンプレート本文に直接貼り付ける。署名を変更した際はフロー本文も合わせて更新が必要。
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 動作確認チェックリスト -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">4</div>
+      <h2>動作確認チェックリスト</h2>
+    </div>
+
+    <div class="card">
+      <h3>テスト手順</h3>
+      <ul class="checklist">
+        <li>対象フォルダにファイルをアップロード → Outlook下書きフォルダに件名「【承認依頼】〇〇」が作成される</li>
+        <li>別フォルダにファイルをアップロード → 下書きが作成されない（フォルダ条件で除外）</li>
+        <li>他の人がファイルを更新 → 下書きが作成されない（更新者条件で除外）</li>
+        <li>水〜土曜日にチェック → 締切日が週末にならないことを確認</li>
+        <li>苗字だけが本文に入っているか（フルネームになっていないか）確認</li>
+        <li>署名が本文末尾に正しく入っているか確認</li>
+        <li>既存の通知フローが重複していないか確認（必要に応じて旧フローを無効化）</li>
+      </ul>
     </div>
   </div>
 
   <div class="footer">
-    SharePoint + Power Automate 承認フロー改善設計 v6 — Step 1: 承認開始チェック → Outlook下書き自動生成
+    Power Automate 実装ガイド — Step 1 / SharePointライブラリ対応 / Outlook下書き自動生成
   </div>
 
 </div>
