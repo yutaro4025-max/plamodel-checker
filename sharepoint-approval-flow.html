@@ -3,208 +3,132 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Power Automate 実装ガイド — 承認開始 → Outlook下書き作成</title>
+  <title>作成手順書 — フォルダ別宛先ルーティング + Outlook下書き自動生成</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --bg: #0f1117;
-      --surface: #1a1d27;
-      --surface2: #222535;
-      --border: #2e3348;
-      --accent: #4f8ef7;
-      --accent2: #7c3aed;
-      --accent3: #059669;
-      --accent4: #d97706;
-      --accent5: #dc2626;
-      --text: #e2e8f0;
-      --text-muted: #8892a4;
-      --text-dim: #4a5568;
+      --bg: #0f1117; --surface: #1a1d27; --surface2: #222535;
+      --border: #2e3348; --accent: #4f8ef7; --accent2: #7c3aed;
+      --accent3: #059669; --accent4: #d97706; --accent5: #dc2626;
+      --text: #e2e8f0; --text-muted: #8892a4; --text-dim: #4a5568;
       --code-bg: #141720;
     }
+    body { background:var(--bg); color:var(--text); font-family:'Segoe UI',system-ui,sans-serif; font-size:14px; line-height:1.7; padding:40px 20px 80px; }
+    .container { max-width:900px; margin:0 auto; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      font-size: 14px;
-      line-height: 1.7;
-      padding: 40px 20px 80px;
-    }
+    /* Header */
+    .header { border-left:4px solid var(--accent); padding:20px 24px; background:var(--surface); border-radius:0 8px 8px 0; margin-bottom:36px; }
+    .header h1 { font-size:19px; font-weight:700; color:#fff; margin-bottom:6px; }
+    .header p  { color:var(--text-muted); font-size:13px; }
+    .badges { display:flex; gap:8px; margin-top:12px; flex-wrap:wrap; }
+    .badge { font-size:11px; font-weight:600; padding:3px 10px; border-radius:99px; border:1px solid; }
+    .badge-blue  { color:var(--accent);  border-color:#2a4a8a; background:#0d1f40; }
+    .badge-green { color:#34d399; border-color:#065f46; background:#022c22; }
+    .badge-amber { color:#fbbf24; border-color:#78350f; background:#1c0a00; }
 
-    .container { max-width: 860px; margin: 0 auto; }
+    /* TOC */
+    .toc { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin-bottom:36px; }
+    .toc-title { font-size:11px; font-weight:700; color:var(--accent); text-transform:uppercase; letter-spacing:.5px; margin-bottom:10px; }
+    .toc ol { padding-left:18px; }
+    .toc li { font-size:13px; color:var(--text-muted); padding:3px 0; }
+    .toc li a { color:var(--text-muted); text-decoration:none; }
+    .toc li a:hover { color:var(--accent); }
+    .toc li.sub { padding-left:16px; font-size:12px; }
 
-    .header {
-      border-left: 4px solid var(--accent);
-      padding: 20px 24px;
-      background: var(--surface);
-      border-radius: 0 8px 8px 0;
-      margin-bottom: 36px;
+    /* Chapter */
+    .chapter { margin-bottom:52px; }
+    .chapter-header {
+      display:flex; align-items:center; gap:12px;
+      padding:12px 18px; border-radius:8px; margin-bottom:20px;
     }
-    .header h1 { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 6px; }
-    .header p  { color: var(--text-muted); font-size: 13px; }
-    .badges { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
-    .badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 99px; border: 1px solid; }
-    .badge-blue   { color: var(--accent);  border-color: #2a4a8a; background: #0d1f40; }
-    .badge-green  { color: #34d399; border-color: #065f46; background: #022c22; }
-    .badge-amber  { color: #fbbf24; border-color: #78350f; background: #1c0a00; }
+    .chapter-header.excel  { background:#022c22; border:1px solid #065f46; }
+    .chapter-header.pa     { background:#0d1f40; border:1px solid #2a4a8a; }
+    .chapter-header.note   { background:#1a0e00; border:1px solid #5a3a0a; }
+    .chapter-num { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:#fff; flex-shrink:0; }
+    .chapter-num.excel { background:var(--accent3); }
+    .chapter-num.pa    { background:var(--accent); }
+    .chapter-num.note  { background:var(--accent4); }
+    .chapter-title { font-size:16px; font-weight:700; color:#fff; }
+    .chapter-sub   { font-size:12px; color:var(--text-muted); margin-top:2px; }
 
-    .section { margin-bottom: 40px; }
-    .section-title {
-      display: flex; align-items: center; gap: 10px;
-      margin-bottom: 16px; padding-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-num {
-      width: 26px; height: 26px; border-radius: 6px;
-      background: var(--accent2); color: #fff;
-      font-size: 12px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .section-num.green { background: var(--accent3); }
-    .section-num.amber { background: var(--accent4); }
-    .section-num.red   { background: var(--accent5); }
-    .section-title h2 { font-size: 15px; font-weight: 700; color: #fff; }
+    /* Step */
+    .step { display:flex; gap:14px; margin-bottom:0; }
+    .step + .step { margin-top:0; }
+    .step-connector { display:flex; flex-direction:column; align-items:center; flex-shrink:0; }
+    .step-dot { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; color:#fff; flex-shrink:0; }
+    .step-dot.excel { background:var(--accent3); }
+    .step-dot.pa    { background:var(--accent); }
+    .step-dot.cond  { background:var(--accent4); }
+    .step-dot.warn  { background:var(--accent5); }
+    .step-line { width:2px; background:var(--border); flex:1; min-height:16px; margin:4px 0; }
+    .step-body { flex:1; background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px 18px; margin-bottom:16px; }
+    .step-body.cond-yes { border-left:3px solid var(--accent3); }
+    .step-body.cond-no  { border-left:3px solid var(--accent5); }
+    .step-type { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+    .step-type.excel { color:#86efac; }
+    .step-type.pa    { color:#7dd3fc; }
+    .step-type.action{ color:#86efac; }
+    .step-type.cond  { color:#fcd34d; }
+    .step-type.warn  { color:#fca5a5; }
+    .step-title { font-size:14px; font-weight:700; color:#fff; margin-bottom:10px; }
 
-    .card {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 18px 22px; margin-bottom: 14px;
-    }
-    .card h3 {
-      font-size: 11px; font-weight: 700; color: var(--accent);
-      margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
-    }
-    .card.highlight { border-color: #2a5a2a; background: #0d1a0d; }
-    .card.highlight h3 { color: #86efac; }
-    .card.warn { border-color: #5a3a0a; background: #1a0e00; }
-    .card.warn h3 { color: #fbbf24; }
-    .card.info { border-color: #1e3a5f; background: #0d1f3a; }
-    .card.info h3 { color: #7dd3fc; }
+    /* Input field table */
+    .field-table { width:100%; border-collapse:collapse; font-size:12.5px; margin-top:8px; }
+    .field-table th { background:var(--surface2); color:var(--text-muted); font-weight:600; text-align:left; padding:7px 12px; border-bottom:2px solid var(--border); font-size:11px; text-transform:uppercase; letter-spacing:.3px; }
+    .field-table td { padding:8px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+    .field-table tr:last-child td { border-bottom:none; }
+    .field-table tr:hover td { background:rgba(79,142,247,.04); }
+    .field-name { font-weight:600; color:var(--text); white-space:nowrap; }
+    .field-required { color:var(--accent5); font-size:10px; font-weight:700; margin-left:4px; }
+    .field-optional { color:var(--text-dim); font-size:10px; font-weight:700; margin-left:4px; }
 
+    pre, code {
+      font-family:'Cascadia Code','Fira Code',Consolas,monospace;
+    }
     pre {
-      background: var(--code-bg); border: 1px solid var(--border);
-      border-radius: 6px; padding: 14px 18px; overflow-x: auto;
-      font-family: 'Cascadia Code', 'Fira Code', Consolas, monospace;
-      font-size: 12px; line-height: 1.8; color: #c9d1e0; white-space: pre;
+      background:var(--code-bg); border:1px solid var(--border);
+      border-radius:6px; padding:12px 16px; overflow-x:auto;
+      font-size:12px; line-height:1.8; color:#c9d1e0; white-space:pre;
     }
-    p code, li code, td code {
-      background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
-      font-size: 11px; font-family: monospace; color: #93c5fd;
-      word-break: break-all;
+    p code, li code, td code, span code {
+      background:var(--code-bg); padding:2px 6px; border-radius:4px;
+      font-size:11px; color:#93c5fd; word-break:break-all;
     }
 
-    .table-wrap { overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    th {
-      background: var(--surface2); color: var(--text-muted);
-      font-weight: 600; text-align: left; padding: 9px 13px;
-      border-bottom: 2px solid var(--border);
-      font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px;
-    }
-    td { padding: 9px 13px; border-bottom: 1px solid var(--border); vertical-align: top; }
-    tr:last-child td { border-bottom: none; }
-    tr:hover td { background: rgba(79,142,247,.04); }
+    .tag { display:inline-block; font-size:10px; font-weight:700; padding:1px 7px; border-radius:4px; }
+    .tag-required { background:#450a0a; color:#fca5a5; }
+    .tag-expr     { background:#2e1065; color:#c4b5fd; }
+    .tag-dynamic  { background:#1e3a5f; color:#93c5fd; }
+    .tag-fixed    { background:#1e293b; color:#94a3b8; }
+    .tag-formula  { background:#022c22; color:#86efac; }
 
-    .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 4px; }
-    .tag-green  { background: #14532d; color: #86efac; }
-    .tag-amber  { background: #451a03; color: #fcd34d; }
-    .tag-red    { background: #450a0a; color: #fca5a5; }
-    .tag-blue   { background: #1e3a5f; color: #93c5fd; }
+    .note { background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--accent4); border-radius:0 6px 6px 0; padding:10px 14px; margin:10px 0; font-size:12.5px; color:var(--text-muted); }
+    .note strong { color:#fbbf24; }
 
-    /* Flow steps */
-    .flow-steps { display: flex; flex-direction: column; }
-    .flow-step { display: flex; gap: 14px; align-items: flex-start; position: relative; }
-    .flow-step + .flow-step { margin-top: 0; }
-    .flow-step + .flow-step::before {
-      content: '';
-      position: absolute; left: 15px; top: -18px;
-      width: 2px; height: 18px; background: var(--border);
-    }
-    .step-icon {
-      width: 32px; height: 32px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px; flex-shrink: 0; margin-top: 2px;
-    }
-    .step-icon.trigger { background: #1e3a5f; }
-    .step-icon.cond    { background: #451a03; }
-    .step-icon.action  { background: #14532d; }
-    .step-body {
-      flex: 1; background: var(--surface); border: 1px solid var(--border);
-      border-radius: 8px; padding: 14px 16px; margin-bottom: 18px;
-    }
-    .step-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
-    .step-label.trigger { color: #7dd3fc; }
-    .step-label.cond    { color: #fcd34d; }
-    .step-label.action  { color: #86efac; }
-    .step-title { font-size: 14px; font-weight: 700; color: #fff; margin-bottom: 8px; }
-    .step-detail { font-size: 12.5px; color: var(--text-muted); }
+    .mail-block { background:var(--code-bg); border:1px solid var(--border); border-radius:8px; overflow:hidden; margin:8px 0; }
+    .mail-header { background:var(--surface2); padding:8px 14px; border-bottom:1px solid var(--border); font-size:11px; color:var(--text-muted); }
+    .mail-header span { color:#fff; font-weight:600; }
+    .mail-body { padding:14px 18px; font-size:12px; font-family:monospace; line-height:1.9; color:#c9d1e0; white-space:pre-wrap; }
 
-    /* Pitfall cards */
-    .pitfall {
-      border: 1px solid var(--border); border-radius: 8px;
-      overflow: hidden; margin-bottom: 14px;
-    }
-    .pitfall-header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 10px 16px; background: var(--surface2);
-      border-bottom: 1px solid var(--border);
-    }
-    .pitfall-num {
-      width: 22px; height: 22px; border-radius: 50%;
-      background: var(--accent5); color: #fff;
-      font-size: 11px; font-weight: 700;
-      display: flex; align-items: center; justify-content: center;
-      flex-shrink: 0;
-    }
-    .pitfall-title { font-size: 13px; font-weight: 700; color: #fff; }
-    .pitfall-body { padding: 14px 16px; background: var(--surface); }
-    .pitfall-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    @media (max-width: 600px) { .pitfall-row { grid-template-columns: 1fr; } }
-    .pitfall-col-label {
-      font-size: 10px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.5px; margin-bottom: 6px;
-    }
-    .pitfall-col-label.bad  { color: var(--accent5); }
-    .pitfall-col-label.good { color: var(--accent3); }
-    .pitfall-col-body { font-size: 12.5px; color: var(--text-muted); }
+    .section-divider { border:none; border-top:1px solid var(--border); margin:32px 0; }
 
-    .mail-block { background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
-    .mail-header {
-      background: var(--surface2); padding: 9px 14px;
-      border-bottom: 1px solid var(--border);
-      font-size: 12px; color: var(--text-muted);
-      display: flex; align-items: center; gap: 8px;
-    }
-    .mail-header span { color: #fff; font-weight: 600; }
-    .mail-body {
-      padding: 14px 18px; font-size: 12.5px;
-      font-family: monospace; line-height: 1.9; color: #c9d1e0; white-space: pre-wrap;
-    }
+    .card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:16px 20px; margin-bottom:14px; }
+    .card h3 { font-size:11px; font-weight:700; color:var(--accent); margin-bottom:10px; text-transform:uppercase; letter-spacing:.5px; }
+    .card.highlight { border-color:#2a5a2a; background:#0d1a0d; }
+    .card.highlight h3 { color:#86efac; }
+    .card.warn { border-color:#5a3a0a; background:#1a0e00; }
+    .card.warn h3 { color:#fbbf24; }
 
-    .checklist { list-style: none; padding: 0; }
-    .checklist li {
-      display: flex; align-items: flex-start; gap: 10px;
-      padding: 8px 0; border-bottom: 1px solid var(--border);
-      font-size: 13px; color: var(--text-muted);
-    }
-    .checklist li:last-child { border-bottom: none; }
-    .checklist li::before { content: '□'; color: var(--accent3); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .checklist { list-style:none; padding:0; }
+    .checklist li { display:flex; align-items:flex-start; gap:10px; padding:7px 0; border-bottom:1px solid var(--border); font-size:13px; color:var(--text-muted); }
+    .checklist li:last-child { border-bottom:none; }
+    .checklist li::before { content:'□'; color:var(--accent3); font-size:14px; flex-shrink:0; }
 
-    .insight-list { list-style: none; padding: 0; }
-    .insight-list li {
-      padding: 8px 0 8px 20px; border-bottom: 1px solid var(--border);
-      font-size: 13px; color: var(--text-muted); position: relative;
-    }
-    .insight-list li:last-child { border-bottom: none; }
-    .insight-list li::before { content: '→'; color: var(--accent); position: absolute; left: 0; }
-    .insight-list li strong { color: var(--text); }
+    .footer { text-align:center; color:var(--text-dim); font-size:12px; margin-top:60px; padding-top:20px; border-top:1px solid var(--border); }
 
-    .footer {
-      text-align: center; color: var(--text-dim);
-      font-size: 12px; margin-top: 60px;
-      padding-top: 20px; border-top: 1px solid var(--border);
-    }
+    /* Legend */
+    .legend { display:flex; gap:16px; flex-wrap:wrap; font-size:11px; color:var(--text-muted); margin-bottom:20px; }
+    .legend-item { display:flex; align-items:center; gap:6px; }
   </style>
 </head>
 <body>
@@ -212,182 +136,548 @@
 
   <!-- Header -->
   <div class="header">
-    <h1>Power Automate 実装ガイド — 承認開始 → Outlook 下書き作成</h1>
-    <p>実装・試験運用を経て確定した構成。つまずきポイントと対処を含む。</p>
+    <h1>作成手順書 — フォルダ別宛先ルーティング + Outlook 下書き自動生成</h1>
+    <p>SharePointライブラリの工程フォルダ単位で承認者を自動判定し、Outlook下書きを生成するPower Automateフローの構築手順</p>
     <div class="badges">
-      <span class="badge badge-green">✅ 動作確認済み</span>
-      <span class="badge badge-blue">SharePoint ライブラリ</span>
-      <span class="badge badge-amber">Outlook 下書き作成</span>
+      <span class="badge badge-green">Excel ルーティングテーブル構築</span>
+      <span class="badge badge-blue">Power Automate フロー設定</span>
+      <span class="badge badge-amber">入力値レベルで記載</span>
     </div>
   </div>
 
-  <!-- 1. 最終フロー構成 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num green">1</div>
-      <h2>最終フロー構成（動作確認済み）</h2>
-    </div>
-
-    <div class="flow-steps">
-
-      <div class="flow-step">
-        <div class="step-icon trigger">⚡</div>
-        <div class="step-body">
-          <div class="step-label trigger">Trigger</div>
-          <div class="step-title">ファイルが作成または変更されたとき</div>
-          <div class="step-detail">
-            コネクタ: <code>SharePoint</code> — ファイルが作成または変更されたとき (プロパティのみ)<br>
-            対象: 対象のSharePointライブラリ全体を監視（フォルダ絞り込みは条件で行う）
-          </div>
-        </div>
-      </div>
-
-      <div class="flow-step">
-        <div class="step-icon cond">🔀</div>
-        <div class="step-body">
-          <div class="step-label cond">Condition — フォルダ ＋ 実行者（2軸を GUI で AND 接続）</div>
-          <div class="step-title">対象フォルダ内 かつ 自分の操作か</div>
-          <div class="step-detail">
-            <strong style="color:#fcd34d;">条件アクションは GUI の2行 AND 接続で設定する（式タブの and() 一括式はエラーになる場合がある）</strong><br><br>
-            <table style="margin-top:6px;">
-              <thead><tr><th>行</th><th>左辺（式タブ）</th><th>演算子</th><th>右辺</th></tr></thead>
-              <tbody>
-                <tr>
-                  <td>1行目</td>
-                  <td><code>triggerOutputs()?['{Path}']</code></td>
-                  <td>次の値を含む</td>
-                  <td><code>①フォルダA</code></td>
-                </tr>
-                <tr>
-                  <td><strong>AND</strong></td>
-                  <td colspan="3">「＋追加」→「行の追加」→ 接続子を AND に設定</td>
-                </tr>
-                <tr>
-                  <td>2行目</td>
-                  <td><code>triggerOutputs()?['body/Editor/Email']</code></td>
-                  <td>次の値と等しい</td>
-                  <td><code>your-email@example.com</code></td>
-                </tr>
-              </tbody>
-            </table>
-            <br>
-            ポイント:<br>
-            ・<code>{Path}</code> は入力項目ではなくトリガーから自動取得。そのまま参照するだけでよい<br>
-            ・フォルダ名は部分一致（含む）で指定。Composeで実値を確認してから設定すると確実<br>
-            ・「いいえの場合」は何もしない（空のまま）
-          </div>
-        </div>
-      </div>
-
-      <div class="flow-step">
-        <div class="step-icon action">🔍</div>
-        <div class="step-body">
-          <div class="step-label action">Action — 宛先の解決（Excelルーティングテーブル参照）</div>
-          <div class="step-title">フォルダ名から宛先メールを取得</div>
-          <div class="step-detail">
-            ① <code>Excel Online (Business)</code> — 表内に存在する行を一覧表示<br>
-            &nbsp;&nbsp;&nbsp;ファイル: <code>承認ルーティング.xlsx</code> / テーブル: <code>T_ルーティング</code><br><br>
-            ② <code>データ操作</code> — 配列のフィルター処理（Filter array）<br>
-            &nbsp;&nbsp;&nbsp;フィルタ式（式タブ）:<br>
-            <pre style="margin-top:6px;">contains(triggerOutputs()?['{Path}'], item()?['フォルダキーワード'])</pre>
-            ③ <code>変数</code> — 変数の初期化（文字列型 / 変数名: <code>varTo</code>）<br>
-            &nbsp;&nbsp;&nbsp;初期値（式タブ）:<br>
-            <pre>first(body('配列のフィルター処理'))?['宛先メール']</pre>
-            ※ 一致する行がない場合のフォールバックとして、<code>coalesce(first(...))?['宛先メール'], '自分のメール')</code> を使うと安全
-          </div>
-        </div>
-      </div>
-
-      <div class="flow-step">
-        <div class="step-icon action">✉️</div>
-        <div class="step-body">
-          <div class="step-label action">Action — 下書き作成</div>
-          <div class="step-title">Outlook「メールの下書きを作成」</div>
-          <div class="step-detail">
-            コネクタ: <code>Office 365 Outlook</code> — メールの下書きを作成 (Create a draft)<br><br>
-            <table style="margin-top:4px;">
-              <thead><tr><th>フィールド</th><th>設定値</th></tr></thead>
-              <tbody>
-                <tr>
-                  <td>宛先 (To)</td>
-                  <td>変数 <code>varTo</code>（Excelから取得した宛先メール）<br>
-                  <span style="font-size:11px;color:var(--text-muted);">※ To は必須項目。フォールバック設定で空にならないようにする</span></td>
-                </tr>
-                <tr><td>件名</td><td><code>【承認依頼】</code> + 動的コンテンツ <code>Name</code></td></tr>
-                <tr><td>本文</td><td>HTML形式で記述（Section 2 参照）</td></tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-    </div>
+  <!-- TOC -->
+  <div class="toc">
+    <div class="toc-title">目次</div>
+    <ol>
+      <li><a href="#prereq">事前準備・前提確認</a></li>
+      <li><a href="#excel">PART A — Excelルーティングテーブルの構築</a>
+        <ol>
+          <li class="sub"><a href="#excel-file">A-1. Excelファイルの作成と配置</a></li>
+          <li class="sub"><a href="#excel-table">A-2. テーブル（T_ルーティング）の作成</a></li>
+          <li class="sub"><a href="#excel-formula">A-3. パスキー列の数式設定</a></li>
+          <li class="sub"><a href="#excel-data">A-4. 初期データの登録</a></li>
+        </ol>
+      </li>
+      <li><a href="#pa">PART B — Power Automateフローの構築</a>
+        <ol>
+          <li class="sub"><a href="#pa-create">B-1. フローの新規作成</a></li>
+          <li class="sub"><a href="#pa-trigger">B-2. トリガー設定</a></li>
+          <li class="sub"><a href="#pa-cond">B-3. 条件（ユーザー絞り込み）</a></li>
+          <li class="sub"><a href="#pa-excel">B-4. Excelテーブル取得</a></li>
+          <li class="sub"><a href="#pa-filter">B-5. フォルダ一致行の絞り込み</a></li>
+          <li class="sub"><a href="#pa-var">B-6. 宛先変数のセット</a></li>
+          <li class="sub"><a href="#pa-check">B-7. 宛先が取得できたか確認</a></li>
+          <li class="sub"><a href="#pa-draft">B-8. Outlook下書き作成</a></li>
+        </ol>
+      </li>
+      <li><a href="#mailbody">PART C — メール本文（HTML）</a></li>
+      <li><a href="#test">PART D — 動作確認</a></li>
+      <li><a href="#expand">PART E — 対象フォルダ・宛先の追加方法</a></li>
+    </ol>
   </div>
 
-  <!-- 1.5 ルーティングテーブル設計 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num amber">★</div>
-      <h2>宛先ルーティングテーブル設計（承認ルーティング.xlsx）</h2>
-    </div>
-
-    <div class="card info">
-      <h3>設計方針</h3>
-      <p style="font-size:13px;color:var(--text-muted);">
-        フォルダが増えても<strong style="color:#7dd3fc;">フローを触らずExcelに1行追加するだけ</strong>で対応できる。<br>
-        Switch アクションは件数が増えると管理が困難になるため採用しない。
-      </p>
+  <!-- 事前準備 -->
+  <div class="chapter" id="prereq">
+    <div class="chapter-header note">
+      <div class="chapter-num note">前</div>
+      <div>
+        <div class="chapter-title">事前準備・前提確認</div>
+        <div class="chapter-sub">作業開始前に揃えておくもの</div>
+      </div>
     </div>
 
     <div class="card">
-      <h3>テーブル名: T_ルーティング（承認ルーティング.xlsx に作成）</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>フォルダキーワード</th><th>宛先メール</th><th>宛先名（表示用）</th></tr></thead>
-          <tbody>
-            <tr><td>①フォルダA</td><td>approver-a@example.com</td><td>承認者A</td></tr>
-            <tr><td>②フォルダB</td><td>approver-b@example.com</td><td>承認者B</td></tr>
-            <tr><td>③フォルダC</td><td>approver-c@example.com</td><td>承認者C</td></tr>
-            <tr style="color:var(--text-muted);font-style:italic;"><td>（追加するだけ）</td><td></td><td></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
-        ファイルはSharePointの任意のドキュメントライブラリに配置。Power Automateの「Excel Online (Business)」コネクタから参照する。
-      </p>
-    </div>
-
-    <div class="card highlight">
-      <h3>フロー内での参照式</h3>
-      <pre>// ① 行一覧取得後、Filter array で Path と部分一致する行を絞り込む
-contains(triggerOutputs()?['{Path}'], item()?['フォルダキーワード'])
-
-// ② 絞り込んだ結果の先頭行から宛先メールを取得（varTo にセット）
-first(body('配列のフィルター処理'))?['宛先メール']
-
-// ③ フォールバック（一致なし時は自分に送る）
-coalesce(first(body('配列のフィルター処理'))?['宛先メール'], 'your-email@example.com')</pre>
-    </div>
-
-  </div>
-
-  <!-- 2. メール本文（HTML形式） -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num amber">2</div>
-      <h2>メール本文（HTML形式 — コード表示に切り替えて貼り付け）</h2>
+      <h3>必要な情報</h3>
+      <table class="field-table">
+        <thead><tr><th>項目</th><th>内容・確認方法</th></tr></thead>
+        <tbody>
+          <tr><td class="field-name">SharePointサイトURL</td><td>ライブラリが置かれているサイトのURL（例: <code>https://会社名.sharepoint.com/sites/サイト名</code>）</td></tr>
+          <tr><td class="field-name">ライブラリ名</td><td>対象のドキュメントライブラリの名前（SharePointで確認）</td></tr>
+          <tr><td class="field-name">フォルダ構造</td><td>製作所 → 領域 → 部門 → 工程 の実際のフォルダ名一覧</td></tr>
+          <tr><td class="field-name">自分のメールアドレス</td><td>Microsoft 365 アカウントのメールアドレス</td></tr>
+          <tr><td class="field-name">各工程の承認者メール</td><td>工程ごとの承認者のMicrosoft 365メールアドレス</td></tr>
+          <tr><td class="field-name">Excelファイルの保存先</td><td>ルーティングテーブルを置くSharePoint上のフォルダ（ライブラリ直下など、業務ファイルとは分けて配置推奨）</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="card warn">
-      <h3>重要: 本文はHTML形式で記述する</h3>
+      <h3>既存フローの確認</h3>
       <p style="font-size:13px;color:var(--text-muted);">
-        プレーンテキストのままではURLが表示されるだけでクリックできない。<br>
-        Power Automateの本文欄で <strong style="color:#fbbf24;">「コード表示（&lt;/&gt;）」に切り替えてから</strong> 以下のHTMLを貼り付けること。
+        同ライブラリに既存の自動化フローが存在する場合、新フローと二重起動する可能性がある。<br>
+        Power Automate管理画面で対象ライブラリをトリガーとするフローを検索し、競合するものは<strong style="color:#fbbf24;">一時無効化</strong>してから作業を開始すること。
+      </p>
+    </div>
+  </div>
+
+  <!-- PART A: Excel -->
+  <div class="chapter" id="excel">
+    <div class="chapter-header excel">
+      <div class="chapter-num excel">A</div>
+      <div>
+        <div class="chapter-title">PART A — Excel ルーティングテーブルの構築</div>
+        <div class="chapter-sub">フォルダと承認者の対応表をExcelで管理する。フロー本体を触らずに宛先を追加・変更できる。</div>
+      </div>
+    </div>
+
+    <!-- A-1 -->
+    <div id="excel-file">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot excel">A1</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type excel">Excel — ファイル作成と配置</div>
+          <div class="step-title">SharePoint上に Excelファイルを新規作成する</div>
+          <table class="field-table">
+            <thead><tr><th>操作</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>①</td><td>SharePointの対象サイトを開く</td></tr>
+              <tr><td>②</td><td>業務ファイルとは別のライブラリ（例: 「管理ツール」「自動化設定」）を用意、または既存ライブラリの管理用フォルダに移動する</td></tr>
+              <tr><td>③</td><td>「新規」→「Excelブック」をクリック</td></tr>
+              <tr><td>④</td><td>ファイル名を <code>承認ルーティング</code> に変更して保存</td></tr>
+            </tbody>
+          </table>
+          <div class="note"><strong>配置場所の注意:</strong> 承認対象のライブラリ（荷姿設定書があるライブラリ）に置くと、このExcelファイルの更新もフローのトリガーになってしまう。必ず別の場所に配置すること。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A-2 -->
+    <div id="excel-table">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot excel">A2</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type excel">Excel — テーブル作成</div>
+          <div class="step-title">テーブル T_ルーティング を作成する</div>
+          <table class="field-table">
+            <thead><tr><th>操作</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>①</td><td>Sheet1 のセル <code>A1</code> から右方向に以下のヘッダーを入力する</td></tr>
+            </tbody>
+          </table>
+          <pre style="margin:10px 0;">A1: 製作所　　B1: 領域　　C1: 部門　　D1: 工程　　E1: パスキー　　F1: 宛先メール　　G1: 宛先名</pre>
+          <table class="field-table" style="margin-top:10px;">
+            <thead><tr><th>列</th><th>列名</th><th>種類</th><th>説明</th></tr></thead>
+            <tbody>
+              <tr><td>A</td><td>製作所</td><td><span class="tag tag-fixed">手入力</span></td><td>フォルダ名と完全一致する製作所名（例: 鈴鹿製作所）</td></tr>
+              <tr><td>B</td><td>領域</td><td><span class="tag tag-fixed">手入力</span></td><td>領域フォルダ名</td></tr>
+              <tr><td>C</td><td>部門</td><td><span class="tag tag-fixed">手入力</span></td><td>部門フォルダ名</td></tr>
+              <tr><td>D</td><td>工程</td><td><span class="tag tag-fixed">手入力</span></td><td>工程フォルダ名</td></tr>
+              <tr><td>E</td><td>パスキー</td><td><span class="tag tag-formula">数式自動生成</span></td><td>A〜Dを「/」でつないだ検索キー。Power Automateがパス一致に使用。</td></tr>
+              <tr><td>F</td><td>宛先メール</td><td><span class="tag tag-fixed">手入力</span></td><td>この工程の承認者メールアドレス</td></tr>
+              <tr><td>G</td><td>宛先名</td><td><span class="tag tag-fixed">手入力</span></td><td>承認者の表示名（参照用）</td></tr>
+            </tbody>
+          </table>
+          <table class="field-table" style="margin-top:14px;">
+            <thead><tr><th>操作</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>②</td><td>セル <code>A1</code> をクリックし、「挿入」→「テーブル」をクリック</td></tr>
+              <tr><td>③</td><td>範囲は <code>$A$1:$G$1</code> のまま（後で行が増えれば自動拡張される）。「先頭行をテーブルの見出しとして使用する」にチェックを入れてOK</td></tr>
+              <tr><td>④</td><td>テーブルが作成されたら、テーブルを選択した状態で「テーブルデザイン」タブ →「テーブル名」を <code>T_ルーティング</code> に変更する</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- A-3 -->
+    <div id="excel-formula">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot excel">A3</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type excel">Excel — 数式設定</div>
+          <div class="step-title">パスキー列（E列）に数式を設定する</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+            パスキーは製作所〜工程のフォルダ名を「/」でつないだ文字列。Power Automate が SharePoint の {Path} と部分一致で照合するキーになる。
+          </p>
+          <table class="field-table">
+            <thead><tr><th>操作</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>①</td><td>データ1行目のE列（<code>E2</code>）をクリック</td></tr>
+              <tr><td>②</td><td>以下の数式を入力して Enter</td></tr>
+            </tbody>
+          </table>
+          <pre style="margin:10px 0;">=[@製作所]&"/"&[@領域]&"/"&[@部門]&"/"&[@工程]</pre>
+          <table class="field-table" style="margin-top:10px;">
+            <thead><tr><th>操作</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>③</td><td>テーブル形式になっていれば、新しい行を追加すると自動的にE列にも数式がコピーされる（手動コピー不要）</td></tr>
+            </tbody>
+          </table>
+          <div class="note">
+            <strong>例:</strong> A2=「鈴鹿製作所」B2=「領域1」C2=「部門2」D2=「工程3」の場合、E2は自動的に <code>鈴鹿製作所/領域1/部門2/工程3</code> になる。<br>
+            SharePointの{Path}の実値は <code>/鈴鹿製作所/領域1/部門2/工程3/ファイル名.xlsx</code> になるため <code>contains</code>（部分一致）で一致する。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- A-4 -->
+    <div id="excel-data">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot excel">A4</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type excel">Excel — 初期データ登録</div>
+          <div class="step-title">対象工程と承認者を登録する</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+            試験運用では担当する工程だけ登録すればよい。未登録の工程はフローがスキップする（フォールバック処理で自分宛に送信）。
+          </p>
+          <table class="field-table">
+            <thead><tr><th>列</th><th>入力例</th><th>注意点</th></tr></thead>
+            <tbody>
+              <tr><td>A: 製作所</td><td>実際のフォルダ名をそのまま入力</td><td>大文字・小文字・スペースを含めてフォルダ名と<strong>完全一致</strong>させること</td></tr>
+              <tr><td>B: 領域</td><td>実際のフォルダ名をそのまま入力</td><td>同上</td></tr>
+              <tr><td>C: 部門</td><td>実際のフォルダ名をそのまま入力</td><td>同上</td></tr>
+              <tr><td>D: 工程</td><td>実際のフォルダ名をそのまま入力</td><td>同上</td></tr>
+              <tr><td>E: パスキー</td><td>（数式で自動生成）</td><td>入力不要</td></tr>
+              <tr><td>F: 宛先メール</td><td>approver@example.com</td><td>Microsoft 365のメールアドレス</td></tr>
+              <tr><td>G: 宛先名</td><td>山田（参照用）</td><td>フローには使わないが管理用に入れておく</td></tr>
+            </tbody>
+          </table>
+          <div class="note"><strong>フォルダ名の確認方法:</strong> SharePointでフォルダを開き、URLまたはフォルダ名を直接コピーして貼り付けると確実。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PART B: Power Automate -->
+  <div class="chapter" id="pa">
+    <div class="chapter-header pa">
+      <div class="chapter-num pa">B</div>
+      <div>
+        <div class="chapter-title">PART B — Power Automate フローの構築</div>
+        <div class="chapter-sub">アクション・入力項目を順番に設定する。</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-item"><span class="tag tag-required">必須</span> 必ず入力</div>
+      <div class="legend-item"><span class="tag tag-expr">式</span> 「式」タブに貼り付け</div>
+      <div class="legend-item"><span class="tag tag-dynamic">動的</span> 動的コンテンツから選択</div>
+      <div class="legend-item"><span class="tag tag-fixed">固定値</span> テキストとして直接入力</div>
+    </div>
+
+    <!-- B-1 -->
+    <div id="pa-create">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot pa">B1</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type pa">Power Automate — フロー作成</div>
+          <div class="step-title">自動化クラウドフローを新規作成する</div>
+          <table class="field-table">
+            <thead><tr><th>操作</th><th>内容</th></tr></thead>
+            <tbody>
+              <tr><td>①</td><td><a href="https://make.powerautomate.com" style="color:var(--accent);">make.powerautomate.com</a> を開く</td></tr>
+              <tr><td>②</td><td>左メニュー「作成」→「自動化クラウドフロー」をクリック</td></tr>
+              <tr><td>③</td><td>フロー名に <code>承認依頼_下書き自動作成</code> と入力</td></tr>
+              <tr><td>④</td><td>トリガーの検索欄に「SharePoint」と入力 → 「ファイルが作成または変更されたとき（プロパティのみ）」を選択 → 「作成」をクリック</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-2 -->
+    <div id="pa-trigger">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot pa">B2</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type pa">Trigger — トリガー設定</div>
+          <div class="step-title">ファイルが作成または変更されたとき（プロパティのみ）</div>
+          <table class="field-table">
+            <thead><tr><th>フィールド名</th><th>入力値</th><th>種別</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">サイトのアドレス <span class="field-required">必須</span></td>
+                <td>ドロップダウンから対象のSharePointサイトを選択</td>
+                <td><span class="tag tag-fixed">選択</span></td>
+              </tr>
+              <tr>
+                <td class="field-name">ライブラリ名 <span class="field-required">必須</span></td>
+                <td>ドロップダウンから荷姿設定書が保存されているライブラリを選択</td>
+                <td><span class="tag tag-fixed">選択</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note"><strong>注意:</strong> 「フォルダー」フィールドは<strong>空欄のまま</strong>にする。特定フォルダに限定するとサブフォルダが監視対象外になる。フォルダ絞り込みは後続の条件とExcel照合で行う。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-3 -->
+    <div id="pa-cond">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot pa">B3</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type cond">Condition — 条件アクション</div>
+          <div class="step-title">自分がアップロードしたファイルのみ処理する</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+            「新しいステップ」→「条件」を追加する。<strong style="color:#fcd34d;">and() の一括式はエラーになるためGUIの2行AND接続を使う。</strong>
+          </p>
+          <table class="field-table">
+            <thead><tr><th></th><th>左辺の値</th><th>演算子</th><th>右辺の値</th></tr></thead>
+            <tbody>
+              <tr>
+                <td style="white-space:nowrap;">1行目</td>
+                <td>
+                  「式」タブを開いて貼り付け:<br>
+                  <code>triggerOutputs()?['body/Editor/Email']</code>
+                  <span class="tag tag-expr">式</span>
+                </td>
+                <td style="white-space:nowrap;">次の値と等しい</td>
+                <td>
+                  自分のメールアドレスをそのまま入力<br>
+                  <span class="tag tag-fixed">固定値</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note" style="margin-top:10px;">
+            「いいえの場合」ブランチ内には何も追加しない（空のままでよい）。<br>
+            フォルダ条件はこの後のExcel照合で制御するため、ここではユーザー条件のみ。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:12px;color:var(--text-muted);padding-left:42px;margin-bottom:12px;">以降の B4〜B8 はすべて「はいの場合」ブランチ内に追加する。</p>
+
+    <!-- B-4 -->
+    <div id="pa-excel">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot pa">B4</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type action">Action — 「はいの場合」ブランチ内</div>
+          <div class="step-title">Excel Online (Business) — 表内に存在する行を一覧表示</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+            「はいの場合」内で「アクションの追加」→「Excel Online (Business)」→「表内に存在する行を一覧表示」を選択。
+          </p>
+          <table class="field-table">
+            <thead><tr><th>フィールド名</th><th>入力値</th><th>種別</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">場所 <span class="field-required">必須</span></td>
+                <td>ドロップダウンから <code>SharePoint Sites</code> または該当サイトを選択</td>
+                <td><span class="tag tag-fixed">選択</span></td>
+              </tr>
+              <tr>
+                <td class="field-name">ドキュメント ライブラリ <span class="field-required">必須</span></td>
+                <td>承認ルーティング.xlsx を置いたライブラリを選択</td>
+                <td><span class="tag tag-fixed">選択</span></td>
+              </tr>
+              <tr>
+                <td class="field-name">ファイル <span class="field-required">必須</span></td>
+                <td>フォルダアイコンをクリックして <code>承認ルーティング.xlsx</code> を選択</td>
+                <td><span class="tag tag-fixed">選択</span></td>
+              </tr>
+              <tr>
+                <td class="field-name">テーブル <span class="field-required">必須</span></td>
+                <td>ドロップダウンから <code>T_ルーティング</code> を選択</td>
+                <td><span class="tag tag-fixed">選択</span></td>
+              </tr>
+              <tr>
+                <td class="field-name">上から順に取得する行数 <span class="field-optional">任意</span></td>
+                <td>空欄のまま（全行取得）</td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-5 -->
+    <div id="pa-filter">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot pa">B5</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type action">Action — 「はいの場合」ブランチ内</div>
+          <div class="step-title">データ操作 — 配列のフィルター処理（Filter array）</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+            「アクションの追加」→「データ操作」→「配列のフィルター処理」を選択。Excelの全行からファイルのパスと一致する行だけを絞り込む。
+          </p>
+          <table class="field-table">
+            <thead><tr><th>フィールド名</th><th>入力値</th><th>種別</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">差出人 <span class="field-required">必須</span></td>
+                <td>
+                  動的コンテンツから「表内に存在する行を一覧表示」の <code>value</code> を選択
+                  <span class="tag tag-dynamic">動的</span>
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td class="field-name">フィルタークエリ（詳細設定）<span class="field-required">必須</span></td>
+                <td>
+                  「詳細モードで編集」をクリックし、「式」タブで以下を入力:<br>
+                  <code>contains(triggerOutputs()?['{Path}'], item()?['パスキー'])</code>
+                  <span class="tag tag-expr">式</span>
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note">
+            <strong>動作:</strong> Excelの全行を順番にチェックし、「パスキー列の値がファイルのパスに含まれる行」だけを返す。<br>
+            例: ファイルパスが <code>/鈴鹿製作所/領域1/部門2/工程3/ファイル.xlsx</code> の場合、パスキーが <code>鈴鹿製作所/領域1/部門2/工程3</code> の行だけが残る。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-6 -->
+    <div id="pa-var">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot pa">B6</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type action">Action — 「はいの場合」ブランチ内</div>
+          <div class="step-title">変数 — 変数の初期化（宛先メールアドレスを格納）</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+            「アクションの追加」→「変数」→「変数の初期化」を選択。
+          </p>
+          <table class="field-table">
+            <thead><tr><th>フィールド名</th><th>入力値</th><th>種別</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">名前 <span class="field-required">必須</span></td>
+                <td><code>varTo</code> と入力</td>
+                <td><span class="tag tag-fixed">固定値</span></td>
+              </tr>
+              <tr>
+                <td class="field-name">種類 <span class="field-required">必須</span></td>
+                <td>ドロップダウンから <code>文字列</code> を選択</td>
+                <td><span class="tag tag-fixed">選択</span></td>
+              </tr>
+              <tr>
+                <td class="field-name">値 <span class="field-required">必須</span></td>
+                <td>
+                  「式」タブを開いて以下を貼り付け:<br>
+                  <code>coalesce(first(body('配列のフィルター処理'))?['宛先メール'], '自分のメールアドレス@example.com')</code>
+                  <span class="tag tag-expr">式</span><br>
+                  <span style="font-size:11px;color:var(--text-muted);">※ <code>'自分のメールアドレス@example.com'</code> は実際のアドレスに置き換える（フォールバック用）</span>
+                </td>
+                <td></td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note">
+            <strong>coalesce() の役割:</strong> フィルター処理の結果が0件（登録されていない工程）の場合、<code>first()</code> が null を返す。<br>
+            coalesce() は null のとき代替値（自分のメール）を返すため、To フィールドが空になるエラーを防ぐ。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-7 -->
+    <div id="pa-check">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot pa">B7</div><div class="step-line"></div></div>
+        <div class="step-body">
+          <div class="step-type cond">Condition — 「はいの場合」ブランチ内</div>
+          <div class="step-title">条件 — フィルター結果が0件（未登録工程）でないか確認</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+            「アクションの追加」→「条件」を追加。未登録工程のファイル更新でも下書きを作るか止めるかをここで制御する。
+          </p>
+          <table class="field-table">
+            <thead><tr><th></th><th>左辺の値</th><th>演算子</th><th>右辺の値</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>1行目</td>
+                <td>
+                  「式」タブ:<br>
+                  <code>length(body('配列のフィルター処理'))</code>
+                  <span class="tag tag-expr">式</span>
+                </td>
+                <td style="white-space:nowrap;">次の値より大きい</td>
+                <td>
+                  <code>0</code><br>
+                  <span class="tag tag-fixed">固定値</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <table class="field-table" style="margin-top:12px;">
+            <thead><tr><th>ブランチ</th><th>処理</th></tr></thead>
+            <tbody>
+              <tr class="cond-yes"><td style="color:#86efac;font-weight:700;">はいの場合</td><td>B8（Outlook下書き作成）へ進む</td></tr>
+              <tr class="cond-no"><td style="color:#fca5a5;font-weight:700;">いいえの場合</td><td>何もしない（空のまま）= 未登録フォルダのファイルはスキップ</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- B-8 -->
+    <div id="pa-draft">
+      <div class="step">
+        <div class="step-connector"><div class="step-dot pa">B8</div></div>
+        <div class="step-body">
+          <div class="step-type action">Action — 「はいの場合 > はいの場合」ブランチ内</div>
+          <div class="step-title">Office 365 Outlook — メールの下書きを作成</div>
+          <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">
+            「アクションの追加」→「Office 365 Outlook」→「メールの下書きを作成（Create a draft）」を選択。
+          </p>
+          <table class="field-table">
+            <thead><tr><th>フィールド名</th><th>入力値</th><th>種別</th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="field-name">宛先 (To) <span class="field-required">必須</span></td>
+                <td>
+                  「式」タブ:<br>
+                  <code>variables('varTo')</code>
+                  <span class="tag tag-expr">式</span>
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td class="field-name">件名 <span class="field-required">必須</span></td>
+                <td>
+                  テキストとして <code>【承認依頼】</code> と入力後、<br>
+                  動的コンテンツから <code>名前</code>（ファイル名）を選択して追加
+                  <span class="tag tag-dynamic">動的</span>
+                </td>
+                <td></td>
+              </tr>
+              <tr>
+                <td class="field-name">本文 <span class="field-required">必須</span></td>
+                <td>本文欄右上の「<code>&lt;/&gt;</code>」（コード表示）ボタンをクリックしてHTML表示に切り替えてから、PART C のHTMLを貼り付ける</td>
+                <td><span class="tag tag-fixed">HTML貼付</span></td>
+              </tr>
+              <tr>
+                <td class="field-name">重要度 <span class="field-optional">任意</span></td>
+                <td>空欄のまま（または「標準」）</td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="note" style="margin-top:10px;">
+            本文を貼り付けた後、<strong style="color:#fbbf24;">コード表示モードのまま「保存」</strong>すること。通常表示に戻すと動的コンテンツの参照が崩れる場合がある。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PART C: メール本文 -->
+  <div class="chapter" id="mailbody">
+    <div class="chapter-header pa">
+      <div class="chapter-num pa">C</div>
+      <div>
+        <div class="chapter-title">PART C — メール本文（HTML）</div>
+        <div class="chapter-sub">B-8 の本文欄にコード表示モードで貼り付ける</div>
+      </div>
+    </div>
+
+    <div class="card warn">
+      <h3>貼り付け前の確認</h3>
+      <p style="font-size:13px;color:var(--text-muted);">
+        本文欄の右上にある <strong style="color:#fbbf24;">「&lt;/&gt;」ボタンをクリックしてHTMLモードに切り替えてから</strong>貼り付けること。<br>
+        通常のテキストモードでは &lt;a&gt; タグが文字列として表示されリンクが機能しない。
       </p>
     </div>
 
     <div class="mail-block">
-      <div class="mail-header">本文 HTML <span>（コード表示に切り替えてから貼り付け）</span></div>
+      <div class="mail-header">本文 HTML <span>（コード表示モードに切り替えてから全文を貼り付け）</span></div>
       <div class="mail-body">&lt;p&gt; 様&lt;/p&gt;
 &lt;p&gt;お世話になっております。&lt;/p&gt;
 &lt;p&gt;下記の案件について、ご確認・承認をお願いいたします。&lt;/p&gt;
@@ -403,37 +693,27 @@ coalesce(first(body('配列のフィルター処理'))?['宛先メール'], 'you
 &lt;p&gt;ご不明な点がございましたら、@{first(split(triggerOutputs()?['body/Editor/DisplayName'],' '))} までご連絡ください。&lt;/p&gt;
 &lt;p&gt;よろしくお願いいたします。&lt;/p&gt;
 &lt;br&gt;
-&lt;p&gt;-- &lt;br&gt;
+&lt;p&gt;--&lt;br&gt;
 [ここにOutlook「名前」署名の内容を貼り付け]&lt;/p&gt;</div>
     </div>
 
-    <div class="card info">
+    <div class="card">
       <h3>動的コンテンツ対応表</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>本文内の変数</th><th>取得される値</th></tr></thead>
-          <tbody>
-            <tr><td><code>triggerOutputs()?['body/{Name}']</code></td><td>ファイル名（案件名）</td></tr>
-            <tr><td><code>triggerOutputs()?['body/{Modified}']</code></td><td>最終更新日時</td></tr>
-            <tr><td><code>triggerOutputs()?['body/{Link to item}']</code></td><td>ファイルへのURL（<code>&lt;a&gt;</code>タグのhrefに指定）</td></tr>
-            <tr><td><code>triggerOutputs()?['body/Editor/DisplayName']</code></td><td>更新者のフルネーム</td></tr>
-            <tr><td><code>first(split(..., ' '))</code></td><td>フルネームの先頭（苗字のみ）</td></tr>
-            <tr><td>締切日の式（formatDateTime〜）</td><td>3営業日後の日付（日本時間基準）</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- 3. 締切日の式 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num green">3</div>
-      <h2>締切日の式</h2>
+      <table class="field-table">
+        <thead><tr><th>本文内の参照式</th><th>取得される内容</th></tr></thead>
+        <tbody>
+          <tr><td><code>triggerOutputs()?['body/{Name}']</code></td><td>ファイル名（案件名）</td></tr>
+          <tr><td><code>triggerOutputs()?['body/{Modified}']</code></td><td>最終更新日時</td></tr>
+          <tr><td><code>triggerOutputs()?['body/{Link to item}']</code></td><td>ファイルへのURL（&lt;a&gt;タグのhrefに使用）</td></tr>
+          <tr><td><code>triggerOutputs()?['body/Editor/DisplayName']</code></td><td>更新者のフルネーム</td></tr>
+          <tr><td><code>first(split(..., ' '))</code></td><td>フルネームの先頭部分（苗字）</td></tr>
+          <tr><td>締切日のformatDateTime式</td><td>3営業日後（日本時間・週末回避）を「yyyy年M月d日」形式で出力</td></tr>
+        </tbody>
+      </table>
     </div>
 
     <div class="card highlight">
-      <h3>Power Automate「式」タブ / または HTML本文に直接埋め込む</h3>
+      <h3>締切日の式（単体で「式」タブに貼り付けるとき）</h3>
       <pre>formatDateTime(
     addDays(
         utcNow(),
@@ -448,202 +728,88 @@ coalesce(first(body('配列のフィルター処理'))?['宛先メール'], 'you
     ),
     'yyyy年M月d日'
 )</pre>
-      <p style="font-size:12px;color:var(--text-muted);margin-top:10px;">
-        日本時間で曜日判定 → 日・月・火は +3日 / 水・木・金・土は +5日（全曜日で週末を回避して3営業日後に着地）
-      </p>
-    </div>
-
-    <div class="card">
-      <h3>曜日別の着地確認</h3>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>チェック日</th><th>加算</th><th>締切日</th><th></th></tr></thead>
-          <tbody>
-            <tr><td>日</td><td>+3</td><td>水</td><td><span class="tag tag-green">✓</span></td></tr>
-            <tr><td>月</td><td>+3</td><td>木</td><td><span class="tag tag-green">✓</span></td></tr>
-            <tr><td>火</td><td>+3</td><td>金</td><td><span class="tag tag-green">✓</span></td></tr>
-            <tr><td>水</td><td>+5</td><td>月</td><td><span class="tag tag-green">✓</span></td></tr>
-            <tr><td>木</td><td>+5</td><td>火</td><td><span class="tag tag-green">✓</span></td></tr>
-            <tr><td>金</td><td>+5</td><td>水</td><td><span class="tag tag-green">✓</span></td></tr>
-            <tr><td>土</td><td>+5</td><td>木</td><td><span class="tag tag-green">✓</span></td></tr>
-          </tbody>
-        </table>
-      </div>
     </div>
   </div>
 
-  <!-- 4. つまずきポイント -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num red">4</div>
-      <h2>実装時のつまずきと対処（記録）</h2>
-    </div>
-
-    <!-- ① Path -->
-    <div class="pitfall">
-      <div class="pitfall-header">
-        <div class="pitfall-num">①</div>
-        <div class="pitfall-title">フォルダ条件が成立しない（{Path} の実値と指定文字列が不一致）</div>
-      </div>
-      <div class="pitfall-body">
-        <div class="pitfall-row">
-          <div>
-            <div class="pitfall-col-label bad">原因</div>
-            <div class="pitfall-col-body">{Path} の実際の値と条件で指定した文字列がずれていた（スラッシュ位置・内部パス差異）。Composeアクションで実際の値を確認するまで見えない。</div>
-          </div>
-          <div>
-            <div class="pitfall-col-label good">対処</div>
-            <div class="pitfall-col-body">フォルダ名の部分一致（contains）に変更。フルパスの一致を求めない。<br>実値確認は Compose に <code>triggerOutputs()?['{Path}']</code> を入れてテスト実行で確認。</div>
-          </div>
-        </div>
+  <!-- PART D: 動作確認 -->
+  <div class="chapter" id="test">
+    <div class="chapter-header note">
+      <div class="chapter-num note">D</div>
+      <div>
+        <div class="chapter-title">PART D — 動作確認</div>
+        <div class="chapter-sub">フロー保存後、以下の順番でテストを実施する</div>
       </div>
     </div>
 
-    <!-- ② フォルダ条件の必要性 -->
-    <div class="pitfall">
-      <div class="pitfall-header">
-        <div class="pitfall-num">②</div>
-        <div class="pitfall-title">「ユーザー条件だけでよいのでは？」という設計判断</div>
-      </div>
-      <div class="pitfall-body">
-        <div class="pitfall-row">
-          <div>
-            <div class="pitfall-col-label bad">懸念</div>
-            <div class="pitfall-col-body">自分の更新で分岐しているのだからフォルダ条件は不要では？と考えた。</div>
-          </div>
-          <div>
-            <div class="pitfall-col-label good">結論</div>
-            <div class="pitfall-col-body">ライブラリ全体を監視しているため業務外ファイルにも反応するリスクがある。<strong style="color:#86efac;">フォルダ条件は必須。</strong> フォルダ ＋ ユーザーの2軸で制御する。</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ③ {Path} の扱い -->
-    <div class="pitfall">
-      <div class="pitfall-header">
-        <div class="pitfall-num">③</div>
-        <div class="pitfall-title">{Path} に値を入力する必要があるのか不明</div>
-      </div>
-      <div class="pitfall-body">
-        <div class="pitfall-row">
-          <div>
-            <div class="pitfall-col-label bad">誤解</div>
-            <div class="pitfall-col-body">{Path} は何か入力が必要なフィールドと思っていた。</div>
-          </div>
-          <div>
-            <div class="pitfall-col-label good">正解</div>
-            <div class="pitfall-col-body">{Path} はトリガーが自動的に取得する値。条件式の中で参照するだけでよく、入力は不要。</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ④ 条件式の入れ方 -->
-    <div class="pitfall">
-      <div class="pitfall-header">
-        <div class="pitfall-num">④</div>
-        <div class="pitfall-title">条件式（equals / contains）をどちらの辺に入れるか迷う</div>
-      </div>
-      <div class="pitfall-body">
-        <div class="pitfall-row">
-          <div>
-            <div class="pitfall-col-label bad">原因</div>
-            <div class="pitfall-col-body">GUI形式（左辺・右辺）と Expression形式（式として直接書く）の違いで迷う。</div>
-          </div>
-          <div>
-            <div class="pitfall-col-label good">対処</div>
-            <div class="pitfall-col-body">条件全体を「式」タブで <code>and(contains(...), equals(...))</code> と一括で書く。GUI形式は使わない。</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ⑤ 宛先必須 -->
-    <div class="pitfall">
-      <div class="pitfall-header">
-        <div class="pitfall-num">⑤</div>
-        <div class="pitfall-title">メール宛先が必須で保存できない</div>
-      </div>
-      <div class="pitfall-body">
-        <div class="pitfall-row">
-          <div>
-            <div class="pitfall-col-label bad">原因</div>
-            <div class="pitfall-col-body">Outlook「下書き作成」コネクタの To フィールドは必須。空欄のままではフロー保存不可。</div>
-          </div>
-          <div>
-            <div class="pitfall-col-label good">対処</div>
-            <div class="pitfall-col-body">To に自分のメールアドレスを仮設定。下書きを開いて送信前に宛先を変更する運用で対応。</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ⑥ リンクがクリックできない -->
-    <div class="pitfall">
-      <div class="pitfall-header">
-        <div class="pitfall-num">⑥</div>
-        <div class="pitfall-title">「Link to item」を埋めてもURLがクリックできない（最大のはまりどころ）</div>
-      </div>
-      <div class="pitfall-body">
-        <div class="pitfall-row">
-          <div>
-            <div class="pitfall-col-label bad">原因</div>
-            <div class="pitfall-col-body">本文がプレーンテキスト扱いになっているためURLが文字列として表示されるだけ。HTMLリンクとして認識されない。</div>
-          </div>
-          <div>
-            <div class="pitfall-col-label good">解決策</div>
-            <div class="pitfall-col-body">
-              本文欄を <strong style="color:#86efac;">「コード表示（&lt;/&gt;）」に切り替えてHTML形式で記述</strong>。<br>
-              リンクは <code>&lt;a&gt;</code> タグで生成する。<br><br>
-              <code>&lt;a href="@{triggerOutputs()?['body/{Link to item}']}"&gt;荷姿設定書を開く&lt;/a&gt;</code>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- 5. 動作確認チェックリスト -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num">5</div>
-      <h2>動作確認チェックリスト</h2>
-    </div>
     <div class="card">
+      <h3>確認手順</h3>
       <ul class="checklist">
-        <li>対象フォルダにファイルをアップロード → Outlook下書きフォルダに「【承認依頼】〇〇」が作成される</li>
-        <li>別フォルダにファイルをアップロード → 下書きが作成されない（フォルダ条件で除外）</li>
-        <li>他の人がファイルを更新 → 下書きが作成されない（ユーザー条件で除外）</li>
-        <li>「▼ 荷姿設定書を開く」リンクがクリックできる（プレーンテキストになっていないか）</li>
-        <li>締切日が週末に当たっていないか（水〜土曜に実行して確認）</li>
-        <li>苗字のみが表示されている（フルネームになっていないか）</li>
-        <li>署名が本文末尾に入っているか</li>
+        <li>【Excelテスト】T_ルーティングにテスト用の1行を入力し、パスキー列が正しく生成されているか目視確認する</li>
+        <li>【フロー保存】Power Automateでフローを保存する。エラーが出る場合はアクション名の参照（特に「配列のフィルター処理」の表示名）を確認する</li>
+        <li>【正常系①】登録済み工程フォルダにファイルをアップロードする → Outlook下書きフォルダに「【承認依頼】〇〇」が生成される</li>
+        <li>【正常系②】下書きの宛先がExcelテーブルの「宛先メール」列の値になっているか確認する</li>
+        <li>【正常系③】「▼ 荷姿設定書を開く」リンクをクリックしてファイルが開くか確認する</li>
+        <li>【正常系④】締切日が週末になっていないか確認する（水〜土に実行して確認）</li>
+        <li>【除外系①】未登録工程フォルダにファイルをアップロードする → 下書きが生成されない（スキップされる）</li>
+        <li>【除外系②】他の人がファイルを更新する → 下書きが生成されない（ユーザー条件でスキップ）</li>
+        <li>【Excelのみ変更テスト】Excelの宛先メールを変更し、同フォルダに再アップロードする → 新しい宛先で下書きが生成される（フロー無変更で反映されることを確認）</li>
       </ul>
+    </div>
+
+    <div class="card warn">
+      <h3>よくあるエラーと対処</h3>
+      <table class="field-table">
+        <thead><tr><th>エラー内容</th><th>原因と対処</th></tr></thead>
+        <tbody>
+          <tr><td>「配列のフィルター処理」でエラー</td><td>アクションの内部名（表示名）が「配列のフィルター処理_1」など番号付きになっている場合、<code>body('配列のフィルター処理')</code> を <code>body('配列のフィルター処理_1')</code> に修正する</td></tr>
+          <tr><td>Excelテーブルが見つからない</td><td>Excelファイルを開いてテーブル名が <code>T_ルーティング</code> になっているか確認。テーブル形式になっていない（単なる範囲になっている）可能性もある</td></tr>
+          <tr><td>宛先が空白でエラー</td><td>coalesce() のフォールバックアドレスが空になっていないか確認。自分のメールアドレスを入れておくこと</td></tr>
+          <tr><td>パスが一致しない</td><td>ComposeアクションでPath実値を確認し、Excelのパスキーと比較する。フォルダ名の大文字・小文字・スペースを一致させる</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
-  <!-- 6. 得られた知見 -->
-  <div class="section">
-    <div class="section-title">
-      <div class="section-num green">6</div>
-      <h2>この実装で得られた知見</h2>
+  <!-- PART E: 拡張方法 -->
+  <div class="chapter" id="expand">
+    <div class="chapter-header excel">
+      <div class="chapter-num excel">E</div>
+      <div>
+        <div class="chapter-title">PART E — 対象フォルダ・宛先の追加方法</div>
+        <div class="chapter-sub">Power Automateフローは触らない。Excelだけ更新する。</div>
+      </div>
     </div>
-    <div class="card highlight">
-      <ul class="insight-list">
-        <li><strong>{Path} は「見た目の値」と「実際の値」がずれる</strong> — Compose で実値を確認してから条件を書く</li>
-        <li><strong>条件は「業務範囲（フォルダ）」と「実行者（ユーザー）」の2軸で管理する</strong> — どちらか一方では抜け漏れが生じる</li>
-        <li><strong>複数条件は GUI の2行 AND 接続が安定</strong> — and() 一括式は動作環境によってエラーになる。各行を左辺／演算子／右辺で分けるほうが確実</li>
-        <li><strong>Power Automateはデータ取得と表示が別</strong> — 値が取れていても表示方法が間違うと機能しない</li>
-        <li><strong>メール本文のリンクはHTML化が必須</strong> — プレーンテキストのままではクリック不可。コード表示に切り替えて &lt;a&gt; タグを使う</li>
-        <li><strong>To フィールドは必須</strong> — 下書き作成でも空欄不可。Excelルーティングテーブルから宛先を動的に取得し、フォールバックで空を防ぐ</li>
-      </ul>
+
+    <div class="step">
+      <div class="step-connector"><div class="step-dot excel">1</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">承認ルーティング.xlsx を開く</div>
+        <div class="step-detail" style="font-size:13px;color:var(--text-muted);">SharePointから直接開く。</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-connector"><div class="step-dot excel">2</div><div class="step-line"></div></div>
+      <div class="step-body">
+        <div class="step-title">T_ルーティング テーブルの末尾に1行追加する</div>
+        <div class="step-detail" style="font-size:13px;color:var(--text-muted);">
+          製作所・領域・部門・工程・宛先メール・宛先名を入力する。<br>
+          パスキー列（E列）は数式が自動コピーされるため入力不要。
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-connector"><div class="step-dot excel">3</div></div>
+      <div class="step-body">
+        <div class="step-title">保存する（以上で完了）</div>
+        <div class="step-detail" style="font-size:13px;color:var(--text-muted);">
+          次回そのフォルダにファイルがアップロードされた時点から新しい宛先で下書きが生成される。フローの変更は不要。
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="footer">
-    Power Automate 実装ガイド — Step 1 完了 / SharePointライブラリ対応 / Outlook下書き自動生成
+    作成手順書 — フォルダ別宛先ルーティング + Outlook下書き自動生成 / Power Automate + Excel Online (Business)
   </div>
 
 </div>
