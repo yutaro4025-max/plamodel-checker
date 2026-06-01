@@ -100,7 +100,6 @@ echo $action   = New-ScheduledTaskAction -Execute 'powershell.exe' -Argument ('-
 echo $trigger  = New-ScheduledTaskTrigger -Daily -At '%STARTUP_TIME%' >> "%TEMP_PS%"
 echo $settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit (New-TimeSpan -Hours 1) >> "%TEMP_PS%"
 echo Register-ScheduledTask -TaskName 'AttendanceRegister' -Action $action -Trigger $trigger -Settings $settings -RunLevel Limited -Force ^| Out-Null >> "%TEMP_PS%"
-echo Write-Host '[OK] タスクスケジューラへの登録が完了しました。' >> "%TEMP_PS%"
 
 powershell.exe -ExecutionPolicy Bypass -File "%TEMP_PS%"
 set PS_EXIT=%errorlevel%
