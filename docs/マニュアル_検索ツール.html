@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>荷姿設定書 検索ツール 操作マニュアル</title>
+<style>
+  :root {
+    --c-accent: #1a5fb4;
+    --c-accent-light: #e6f1fb;
+    --c-accent-mid: #378add;
+    --c-accent-dark: #0c447c;
+    --c-success: #3b6d11;
+    --c-success-light: #eaf3de;
+    --c-warning: #854f0b;
+    --c-warning-light: #faeeda;
+    --c-danger: #a32d2d;
+    --c-danger-light: #fcebeb;
+    --c-gray-50: #f1efe8;
+    --c-gray-100: #d3d1c7;
+    --c-gray-200: #b4b2a9;
+    --c-gray-600: #5f5e5a;
+    --c-gray-800: #444441;
+    --c-gray-900: #2c2c2a;
+    --c-text: #1a1a18;
+    --c-text-sub: #5f5e5a;
+    --c-border: rgba(0,0,0,0.12);
+    --c-bg: #ffffff;
+    --c-bg-page: #f7f5f0;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', sans-serif;
+    background: var(--c-bg-page);
+    color: var(--c-text);
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .doc-header {
+    background: var(--c-accent-dark);
+    color: #fff;
+    padding: 3rem 2rem 2.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+  .doc-header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 280px; height: 280px;
+    border: 40px solid rgba(255,255,255,0.06);
+    border-radius: 50%;
+  }
+  .doc-header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 40%;
+    width: 180px; height: 180px;
+    border: 30px solid rgba(255,255,255,0.04);
+    border-radius: 50%;
+  }
+  .doc-header-inner { max-width: 900px; margin: 0 auto; position: relative; }
+  .doc-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 4px;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    margin-bottom: 1rem;
+    color: rgba(255,255,255,0.85);
+    text-transform: uppercase;
+  }
+  .doc-header h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  .doc-header p { font-size: 14px; color: rgba(255,255,255,0.7); }
+  .header-meta { display: flex; gap: 2rem; margin-top: 1.5rem; font-size: 12px; color: rgba(255,255,255,0.6); flex-wrap: wrap; }
+  .header-meta span { display: flex; align-items: center; gap: 6px; }
+  .toc-wrap {
+    background: var(--c-accent-light);
+    border-left: 3px solid var(--c-accent-mid);
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .toc-wrap h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--c-accent-dark); margin-bottom: 0.75rem; }
+  .toc-list { list-style: none; display: flex; flex-wrap: wrap; gap: 0.4rem 1.5rem; }
+  .toc-list li { font-size: 13px; }
+  .toc-list a { color: var(--c-accent); text-decoration: none; }
+  .toc-list a:hover { text-decoration: underline; }
+  .doc-body { max-width: 900px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+  .section { margin-bottom: 3rem; }
+  .section-title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 20px; font-weight: 700; color: var(--c-accent-dark);
+    padding-bottom: 0.6rem; border-bottom: 2px solid var(--c-accent-light); margin-bottom: 1.5rem;
+  }
+  .section-num {
+    background: var(--c-accent); color: #fff; font-size: 12px; font-weight: 700;
+    border-radius: 4px; padding: 2px 8px; flex-shrink: 0;
+  }
+  .card { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .card-title { font-size: 14px; font-weight: 700; color: var(--c-accent-dark); margin-bottom: 0.6rem; display: flex; align-items: center; gap: 8px; }
+  .ui-mockup { background: #e8e8e8; border-radius: var(--radius-lg); padding: 1rem; margin: 1.5rem 0; border: 1px solid var(--c-border); }
+  .ui-mockup-title { font-size: 11px; color: var(--c-text-sub); text-align: center; margin-bottom: 0.75rem; letter-spacing: 0.05em; }
+  .form-window { background: #f0f0f0; border: 1px solid #b0b0b0; border-radius: 6px; overflow: hidden; max-width: 470px; margin: 0 auto; box-shadow: 2px 2px 6px rgba(0,0,0,0.15); }
+  .form-titlebar { background: linear-gradient(to bottom, #2c6fc2, #1a5fb4); color: #fff; font-size: 12px; padding: 5px 10px; display: flex; align-items: center; gap: 8px; }
+  .form-body { padding: 12px 14px; }
+  .form-group { border: 1px solid #aaa; border-radius: 4px; padding: 8px 10px; margin-bottom: 8px; }
+  .form-group-title { font-size: 10px; font-weight: 700; color: #444; margin-bottom: 6px; }
+  .form-row { display: grid; grid-template-columns: 80px 1fr; align-items: center; gap: 6px; margin-bottom: 6px; font-size: 12px; }
+  .form-row-3 { display: grid; grid-template-columns: 1fr; align-items: center; gap: 4px; margin-bottom: 4px; font-size: 11px; }
+  .form-label { color: #333; font-weight: 600; font-size: 11px; }
+  .form-label-hint { color: #888; font-size: 10px; margin-bottom: 2px; }
+  .form-input { background: #fff; border: 1px solid #a0a0a0; border-radius: 2px; height: 20px; padding: 0 6px; font-size: 11px; color: #222; }
+  .form-input.filled { background: #fff9e6; border-color: #c89a00; }
+  .form-input.disabled { background: #e8e8e8; color: #999; }
+  .form-listbox { background: #fff; border: 1px solid #a0a0a0; border-radius: 2px; height: 90px; margin: 6px 0 4px; font-size: 11px; overflow: hidden; }
+  .form-listbox-item { padding: 3px 6px; border-bottom: 1px solid #eee; color: #333; }
+  .form-listbox-item.selected { background: #1a5fb4; color: #fff; }
+  .form-buttons { display: flex; gap: 5px; margin: 6px 0; flex-wrap: wrap; }
+  .form-btn { background: #e4e4e4; border: 1px solid #aaa; border-radius: 3px; font-size: 11px; padding: 4px 10px; cursor: default; color: #222; }
+  .form-btn.primary { background: #d6e4f7; border-color: #1a5fb4; color: #0c447c; font-weight: 700; }
+  .form-btn.zip { background: #e4f7d6; border-color: #3b6d11; color: #27500a; font-weight: 700; }
+  .form-btn.clear { background: #fff7e6; border-color: #854f0b; color: #633806; }
+  .form-btn.close { background: #fde8e8; border-color: #a32d2d; color: #791f1f; }
+  .form-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+  .form-footer-left { font-size: 10px; color: #555; }
+  .form-footer-right { display: flex; gap: 5px; align-items: center; }
+  .checkbox-row { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #333; }
+  .callout { border-radius: var(--radius); padding: 1rem 1.25rem; margin: 1rem 0; display: flex; gap: 0.75rem; font-size: 14px; }
+  .callout-icon { font-size: 18px; flex-shrink: 0; line-height: 1.4; }
+  .callout.info { background: var(--c-accent-light); border-left: 3px solid var(--c-accent-mid); }
+  .callout.info .callout-icon { color: var(--c-accent); }
+  .callout.success { background: var(--c-success-light); border-left: 3px solid var(--c-success); }
+  .callout.success .callout-icon { color: var(--c-success); }
+  .callout.warning { background: var(--c-warning-light); border-left: 3px solid var(--c-warning); }
+  .callout.warning .callout-icon { color: var(--c-warning); }
+  .callout.danger { background: var(--c-danger-light); border-left: 3px solid var(--c-danger); }
+  .callout.danger .callout-icon { color: var(--c-danger); }
+  .callout-body { flex: 1; }
+  .callout-body strong { display: block; margin-bottom: 0.25rem; }
+  .flow { display: flex; flex-direction: column; gap: 0; margin: 1.5rem 0; }
+  .flow-step { display: flex; gap: 1rem; align-items: flex-start; position: relative; }
+  .flow-step:not(:last-child)::after { content: ''; position: absolute; left: 17px; top: 36px; width: 2px; height: calc(100% + 8px); background: var(--c-gray-100); }
+  .flow-num { width: 36px; height: 36px; border-radius: 50%; background: var(--c-accent); color: #fff; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; z-index: 1; }
+  .flow-content { background: var(--c-bg); border: 1px solid var(--c-border); border-radius: var(--radius); padding: 0.75rem 1rem; flex: 1; margin-bottom: 1rem; }
+  .flow-content strong { display: block; font-size: 14px; color: var(--c-accent-dark); margin-bottom: 0.25rem; }
+  .flow-content p { font-size: 13px; color: var(--c-text-sub); }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 1rem 0; }
+  .data-table th { background: var(--c-accent); color: #fff; padding: 8px 12px; text-align: left; font-weight: 600; font-size: 12px; }
+  .data-table td { padding: 8px 12px; border-bottom: 1px solid var(--c-border); vertical-align: top; }
+  .data-table tr:nth-child(even) td { background: var(--c-gray-50); }
+  .data-table tr:hover td { background: var(--c-accent-light); }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 3px; font-weight: 600; }
+  .tag-blue { background: var(--c-accent-light); color: var(--c-accent-dark); }
+  .tag-green { background: var(--c-success-light); color: var(--c-success); }
+  .tag-amber { background: var(--c-warning-light); color: var(--c-warning); }
+  .tag-red { background: var(--c-danger-light); color: var(--c-danger); }
+  .rev-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 1rem 0; }
+  .rev-table th { background: var(--c-gray-800); color: #fff; padding: 6px 10px; text-align: left; }
+  .rev-table td { padding: 6px 10px; border-bottom: 1px solid var(--c-border); }
+  code { font-family: 'Consolas', 'Courier New', monospace; background: var(--c-gray-50); border: 1px solid var(--c-gray-100); border-radius: 3px; padding: 1px 5px; font-size: 12px; color: var(--c-accent-dark); }
+  .grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+  .grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+  .doc-footer { background: var(--c-gray-800); color: rgba(255,255,255,0.6); text-align: center; padding: 1.5rem; font-size: 12px; margin-top: 3rem; }
+  @media print { body { background: #fff; } .doc-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; } .section { page-break-inside: avoid; } }
+  p { margin-bottom: 0.6rem; }
+  ul, ol { padding-left: 1.5rem; }
+  li { margin-bottom: 0.3rem; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<div class="doc-header">
+  <div class="doc-header-inner">
+    <div class="doc-badge">操作マニュアル</div>
+    <h1>荷姿設定書 検索ツール</h1>
+    <p>C# WinForms アプリケーション — 発行機種・取引先コード・主No.で検索 &amp; ZIP一括保存</p>
+    <div class="header-meta">
+      <span>📋 Ver 2.00（C# 移行版）</span>
+      <span>📅 2026/06/03</span>
+      <span>🖥 対象：PlamodelChecker.exe</span>
+      <span>⚙ .NET 8 / Windows 10・11</span>
+    </div>
+  </div>
+</div>
+
+<div class="doc-body">
+
+  <div class="toc-wrap">
+    <h2>目次</h2>
+    <ul class="toc-list">
+      <li><a href="#overview">1. ツール概要</a></li>
+      <li><a href="#install">2. ファイル配置</a></li>
+      <li><a href="#data">3. データ構造</a></li>
+      <li><a href="#ui">4. 画面構成</a></li>
+      <li><a href="#search">5. 検索の使い方</a></li>
+      <li><a href="#open">6. ファイルを開く</a></li>
+      <li><a href="#zip">7. ZIP保存機能</a></li>
+      <li><a href="#other">8. その他のボタン</a></li>
+      <li><a href="#trouble">9. エラー対処</a></li>
+      <li><a href="#history">10. 改訂履歴</a></li>
+    </ul>
+  </div>
+
+  <!-- 1. 概要 -->
+  <div class="section" id="overview">
+    <h2 class="section-title"><span class="section-num">1</span>ツール概要</h2>
+    <p>このツールは <strong>荷姿設定書</strong> をインデックスファイルから素早く検索し、そのまま開いたり、検索結果を一括でZIPにまとめて保存できる <strong>Windows アプリケーション（exe）</strong> です。</p>
+    <p>従来の Excel VBA 版から移行したことで、<strong>ツール起動中に他のExcelファイルを自由に開けるようになりました。</strong></p>
+
+    <div class="grid-3" style="margin-top: 1.25rem;">
+      <div class="card">
+        <div class="card-title">🔍 3軸キーワード検索</div>
+        <p style="font-size:13px; color:var(--c-text-sub);">発行機種・取引先コード・主No.の3フィールドで前方一致検索。入力した全フィールドが一致した場合のみヒット</p>
+      </div>
+      <div class="card">
+        <div class="card-title">📂 直接ファイルを開く</div>
+        <p style="font-size:13px; color:var(--c-text-sub);">検索結果をダブルクリックするだけで荷姿設定書ファイルを関連付けアプリで直接起動</p>
+      </div>
+      <div class="card" style="border-color: #3b6d11;">
+        <div class="card-title" style="color:#27500a;">📦 ZIP一括保存</div>
+        <p style="font-size:13px; color:var(--c-text-sub);">検索にヒットした全ファイルをZIPにまとめて保存。ファイル名まで指定して保存できる</p>
+      </div>
+    </div>
+
+    <div class="callout success" style="margin-top: 1.5rem;">
+      <div class="callout-icon">✅</div>
+      <div class="callout-body">
+        <strong>Excel VBA 版からの主な改善点</strong>
+        <ul style="margin-top: 0.25rem;">
+          <li>ツール起動中も他のExcelファイルを自由に開ける（Excel プロセス非占有）</li>
+          <li>ZIP保存に PowerShell 不要（.NET 標準機能で処理）</li>
+          <li>Enterキーで検索実行が可能</li>
+          <li>検索精度の改善：入力した全フィールドが一致する場合のみヒット</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. ファイル配置 -->
+  <div class="section" id="install">
+    <h2 class="section-title"><span class="section-num">2</span>ファイル配置</h2>
+    <p>以下のようにファイルを同じフォルダに配置してください。</p>
+
+    <table class="data-table">
+      <thead><tr><th>ファイル名</th><th>種別</th><th>説明</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>PlamodelChecker.exe</code></td>
+          <td><span class="tag tag-blue">必須</span></td>
+          <td>検索ツール本体</td>
+        </tr>
+        <tr>
+          <td><code>荷姿設定書検索.xlsm</code></td>
+          <td><span class="tag tag-blue">必須</span></td>
+          <td>インデックスファイル。A列：ファイル識別名、B列：ファイルパス</td>
+        </tr>
+        <tr>
+          <td><code>マニュアル_検索ツール.html</code></td>
+          <td><span class="tag tag-amber">推奨</span></td>
+          <td>このマニュアル。「運用マニュアル」リンクから開く</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout info">
+      <div class="callout-icon">💡</div>
+      <div class="callout-body">
+        <strong>起動方法</strong>
+        <code>PlamodelChecker.exe</code> をダブルクリックするだけで起動します。インストール作業は不要です。
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. データ構造 -->
+  <div class="section" id="data">
+    <h2 class="section-title"><span class="section-num">3</span>データ構造（荷姿設定書検索.xlsm）</h2>
+    <p>ツールは <code>荷姿設定書検索.xlsm</code> の Sheet1 を読み取り専用で参照します。</p>
+
+    <table class="data-table">
+      <thead>
+        <tr><th style="width:80px;">セル／列</th><th style="width:140px;">内容</th><th>説明</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>A1セル</strong></td>
+          <td>更新日時</td>
+          <td>画面下部の「更新日時」に表示される。日付データ（シリアル値）でも文字列でも可</td>
+        </tr>
+        <tr>
+          <td><strong>A列（2行目〜）</strong></td>
+          <td>ファイル識別名</td>
+          <td>検索キー。<code>_</code>（アンダースコア）で最大3セグメントに分割して検索に使用。例：<code>32RA_2206_61500-32R</code></td>
+        </tr>
+        <tr>
+          <td><strong>B列（2行目〜）</strong></td>
+          <td>ファイルパス</td>
+          <td>実際のファイルへのフルパス（UNCパス可）。例：<code>\\server\share\32RA_2206_61500-32R.pdf</code></td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout warning">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <strong>1行目はヘッダー行として扱われます</strong>
+        データは2行目から入力してください。A1セルには更新日時を入れてください。
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. 画面構成 -->
+  <div class="section" id="ui">
+    <h2 class="section-title"><span class="section-num">4</span>画面構成</h2>
+
+    <div class="ui-mockup">
+      <div class="ui-mockup-title">▼ 画面イメージ</div>
+      <div class="form-window">
+        <div class="form-titlebar">
+          <span>荷姿設定書 検索ツール</span>
+          <span style="margin-left:auto; font-size:10px;">─ □ ✕</span>
+        </div>
+        <div class="form-body">
+          <!-- 検索キーワードグループ -->
+          <div class="form-group">
+            <div class="form-group-title">検索キーワード</div>
+            <!-- 行1: 発行機種 / 取引先コード -->
+            <div style="display:grid; grid-template-columns:55px 120px 80px 1fr; gap:4px; align-items:center; margin-bottom:6px;">
+              <span class="form-label">発行機種</span>
+              <div class="form-input filled" style="font-size:11px; line-height:20px; padding:0 6px;">32RA</div>
+              <span class="form-label" style="text-align:right; padding-right:4px;">取引先コード</span>
+              <div class="form-input filled" style="font-size:11px; line-height:20px; padding:0 6px;">2206</div>
+            </div>
+            <!-- 行2: 主No ヒント / フリーワード -->
+            <div style="display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; margin-bottom:4px;">
+              <span style="font-size:10px; color:#888;">主No.(5)  ─  類別No.(3)  ─  種別No.(2)</span>
+              <div class="checkbox-row"><input type="checkbox" disabled><span>フリーワード検索</span></div>
+            </div>
+            <!-- 行3: TextBox3 -->
+            <div class="form-input filled" style="width:200px; font-size:11px; line-height:20px; padding:0 6px;">61500</div>
+          </div>
+          <!-- ボタン行 -->
+          <div class="form-buttons">
+            <div class="form-btn zip">ZIP 保存</div>
+            <div class="form-btn">設定</div>
+            <div class="form-btn clear">クリア</div>
+            <div class="form-btn primary">検索</div>
+          </div>
+          <!-- 検索内容 -->
+          <div style="font-size:10px; color:#555; margin-bottom:2px;">検索内容</div>
+          <div class="form-listbox">
+            <div class="form-listbox-item selected">32RA_2206_61500-32R-.pdf</div>
+            <div class="form-listbox-item">32RA_2206_61500-32R-.xlsx</div>
+          </div>
+          <!-- フッター -->
+          <div class="form-footer">
+            <div class="form-footer-left">検索件数：2 件</div>
+            <div class="form-footer-right">
+              <div class="form-btn" style="font-size:10px;">運用マニュアル</div>
+              <div class="form-btn close" style="font-size:10px;">終了</div>
+            </div>
+          </div>
+          <div style="font-size:10px; color:#888; margin-top:4px;">更新日時：2026/06/02</div>
+        </div>
+      </div>
+    </div>
+
+    <table class="data-table" style="margin-top: 1rem;">
+      <thead><tr><th>コントロール</th><th>役割</th></tr></thead>
+      <tbody>
+        <tr><td><strong>発行機種</strong>（TextBox1）</td><td><code>_</code>で分割した第1セグメントと前方一致照合</td></tr>
+        <tr><td><strong>取引先コード</strong>（TextBox2）</td><td><code>_</code>で分割した第2セグメントと前方一致照合</td></tr>
+        <tr><td><strong>主No.(5)─類別No.(3)─種別No.(2)</strong>（TextBox3）</td><td><code>_</code>で分割した第3セグメントと照合。フリーワード検索時はA列全体を部分一致</td></tr>
+        <tr><td><strong>フリーワード検索</strong>（チェックボックス）</td><td>ONにするとTextBox1/2が無効化され、TextBox3の文字列でA列全体を部分一致検索</td></tr>
+        <tr><td><strong>検索内容</strong>（リストボックス）</td><td>検索結果一覧。ダブルクリックでB列パスのファイルを起動</td></tr>
+        <tr><td><strong>検索件数</strong>（ラベル）</td><td>ヒット件数をリアルタイム表示</td></tr>
+        <tr><td><strong>更新日時</strong>（ラベル）</td><td>インデックスファイルのA1セルの値を表示</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 5. 検索 -->
+  <div class="section" id="search">
+    <h2 class="section-title"><span class="section-num">5</span>検索の使い方</h2>
+
+    <div class="grid-2">
+      <div>
+        <h3 style="font-size:15px; font-weight:700; color:var(--c-accent-dark); margin-bottom:0.75rem;">5-1. 通常検索（分割検索）</h3>
+        <p style="font-size:14px;">A列の値を <code>_</code> で最大3分割し、入力した全フィールドが対応セグメントに前方一致した場合のみヒットします。</p>
+        <div class="callout info" style="margin-top: 0.75rem;">
+          <div class="callout-icon">💡</div>
+          <div class="callout-body">
+            <strong>入力例</strong>
+            A列の値 <code>32RA_2206_61500-32R-.pdf</code><br>
+            発行機種：<code>32RA</code>、取引先コード：<code>2206</code>、主No.：<code>61500</code> → ヒット<br>
+            発行機種：<code>32RA</code>のみ入力 → ヒット（他は空欄のためスキップ）
+          </div>
+        </div>
+        <ul style="margin-top: 0.75rem; font-size: 13px;">
+          <li>3つ全て空白の場合は検索不可（警告表示）</li>
+          <li>1つだけ入力でも検索可能</li>
+          <li>Enterキーでも検索実行できる</li>
+          <li>対応セグメントが存在しない場合は不一致（入力した項目より分割数が少ない品番はヒットしない）</li>
+        </ul>
+      </div>
+      <div>
+        <h3 style="font-size:15px; font-weight:700; color:var(--c-accent-dark); margin-bottom:0.75rem;">5-2. フリーワード検索</h3>
+        <p style="font-size:14px;">「フリーワード検索」にチェックを入れると TextBox1/2 が無効化され、TextBox3（主No.欄）に入力した文字列でA列全体を<strong>部分一致</strong>検索します。</p>
+        <div class="callout success" style="margin-top: 0.75rem;">
+          <div class="callout-icon">✅</div>
+          <div class="callout-body">
+            <strong>使いどころ</strong>
+            品番の途中の文字列だけ覚えている場合や、連番・リビジョン番号など任意の文字列で絞り込みたい場合に有効です。
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:15px; font-weight:700; color:var(--c-accent-dark); margin: 1.5rem 0 0.75rem;">5-3. 検索ロジックの詳細</h3>
+    <table class="data-table">
+      <thead><tr><th>条件</th><th>動作</th></tr></thead>
+      <tbody>
+        <tr><td>入力済みフィールドが全て対応セグメントに前方一致</td><td>リストに追加（ヒット）</td></tr>
+        <tr><td>入力済みフィールドのうち1つでも不一致</td><td>その行はスキップ</td></tr>
+        <tr><td>入力済みフィールドに対応するセグメントが存在しない</td><td>不一致としてスキップ</td></tr>
+        <tr><td>空のフィールド</td><td>チェックしない（何でもヒット）</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 6. ファイルを開く -->
+  <div class="section" id="open">
+    <h2 class="section-title"><span class="section-num">6</span>ファイルを開く</h2>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-content">
+          <strong>検索を実行する</strong>
+          <p>キーワードを入力し「検索」ボタンをクリック（またはEnterキー）。リストに結果が表示される。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-content">
+          <strong>リストから対象を選ぶ</strong>
+          <p>一覧から目的のファイル識別名をクリックして選択する。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-content">
+          <strong>ダブルクリックで開く</strong>
+          <p>選択行をダブルクリックすると、B列のパスを使ってファイルが関連付けられたアプリで開く。</p>
+        </div>
+      </div>
+    </div>
+    <div class="callout warning">
+      <div class="callout-icon">⚠️</div>
+      <div class="callout-body">
+        <strong>「データは削除・変更されています」と表示される場合</strong>
+        インデックスファイルが更新され、検索後にA列のキーが見つからなくなった状態です。再度検索を実行してリストを更新してください。
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. ZIP保存 -->
+  <div class="section" id="zip">
+    <h2 class="section-title"><span class="section-num">7</span>ZIP保存機能</h2>
+    <p>検索結果にヒットしたファイルをまとめてZIPに圧縮し、指定した場所に保存する機能です。</p>
+
+    <div class="flow" style="margin-top: 1.25rem;">
+      <div class="flow-step">
+        <div class="flow-num">1</div>
+        <div class="flow-content">
+          <strong>先に検索を実行する</strong>
+          <p>リストに1件以上の結果が表示されている状態にする。0件のままZIPボタンを押すと警告が出て処理しない。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">2</div>
+        <div class="flow-content">
+          <strong>「ZIP 保存」ボタンをクリック</strong>
+          <p>名前を付けて保存ダイアログが表示される。初期フォルダはデスクトップ。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">3</div>
+        <div class="flow-content">
+          <strong>保存先とファイル名を指定して「保存」</strong>
+          <p>ZIPファイル名はデフォルトで <code>検索結果_yyyymmdd_hhmmss.zip</code> が自動入力される。任意に変更可能。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">4</div>
+        <div class="flow-content">
+          <strong>バックグラウンドで処理（ボタンが「保存中...」に変化）</strong>
+          <p>ファイルのコピーとZIP作成がバックグラウンドで実行される。処理中もツールは操作可能。</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="flow-num">5</div>
+        <div class="flow-content">
+          <strong>完了メッセージ → 保存先を開くか選択</strong>
+          <p>「保存先フォルダを開きますか？」と表示される。「はい」でエクスプローラーが開く。</p>
+        </div>
+      </div>
+    </div>
+
+    <h3 style="font-size:15px; font-weight:700; color:var(--c-accent-dark); margin: 1.5rem 0 0.75rem;">ZIP保存の仕様</h3>
+    <table class="data-table">
+      <thead><tr><th>項目</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>ZIPファイル名</td><td>ダイアログで任意指定可（デフォルト：<code>検索結果_yyyymmdd_hhmmss.zip</code>）</td></tr>
+        <tr><td>ZIP方式</td><td>.NET 標準ライブラリ（PowerShell・外部ツール不要）</td></tr>
+        <tr><td>同名ファイルの扱い</td><td>自動的に <code>ファイル名_1.拡張子</code> のように連番を付与して上書き回避</td></tr>
+        <tr><td>パスが存在しないファイル</td><td>スキップし、完了後に一覧で通知</td></tr>
+        <tr><td>処理中のUI</td><td>バックグラウンド実行のためツールは操作可能なまま</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 8. その他ボタン -->
+  <div class="section" id="other">
+    <h2 class="section-title"><span class="section-num">8</span>その他のボタン</h2>
+    <table class="data-table">
+      <thead><tr><th style="width:160px;">ボタン</th><th>動作</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><span class="tag tag-blue">検索</span></td>
+          <td>入力キーワードでインデックスファイルを検索し、結果をリストに表示。件数も更新。Enterキーでも実行可。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-amber">クリア</span></td>
+          <td>全入力フィールドとリストの表示をリセット。検索件数も0に戻す。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-green">ZIP 保存</span></td>
+          <td>リストの検索結果に対応する全ファイルをZIPで保存。保存先とファイル名はダイアログで指定。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-blue">設定</span></td>
+          <td>設定画面（準備中）。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-blue">運用マニュアル</span></td>
+          <td>クリックでこのマニュアル（<code>マニュアル_検索ツール.html</code>）をブラウザで開く。ファイルが同フォルダにない場合はエラーメッセージを表示。</td>
+        </tr>
+        <tr>
+          <td><span class="tag tag-red">終了</span></td>
+          <td>ツールを終了する。</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 9. エラー対処 -->
+  <div class="section" id="trouble">
+    <h2 class="section-title"><span class="section-num">9</span>エラー対処</h2>
+    <table class="data-table">
+      <thead><tr><th>メッセージ／症状</th><th>原因</th><th>対処法</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>「インデックスファイルが見つかりません」</td>
+          <td><code>荷姿設定書検索.xlsm</code> が exe と同じフォルダにない</td>
+          <td>ファイルを exe と同じフォルダに配置する</td>
+        </tr>
+        <tr>
+          <td>「少なくとも1つのキーワードを入力してください」</td>
+          <td>全テキストボックスが空のまま検索を押した</td>
+          <td>いずれか1つ以上のフィールドにキーワードを入力する</td>
+        </tr>
+        <tr>
+          <td>「データがありません！」</td>
+          <td>キーワードに該当する行が存在しない</td>
+          <td>キーワードを変更して再検索</td>
+        </tr>
+        <tr>
+          <td>「データは削除・変更されています！」</td>
+          <td>検索後にインデックスデータが更新された</td>
+          <td>再度検索を実行してリストを更新する</td>
+        </tr>
+        <tr>
+          <td>「ZIPにまとめるファイルがありません」</td>
+          <td>リストが空の状態でZIP保存を押した</td>
+          <td>先に検索を実行してリストに結果を表示させる</td>
+        </tr>
+        <tr>
+          <td>「有効なファイルが1件もコピーできませんでした」</td>
+          <td>B列のパスが全件とも存在しないまたはアクセス不可</td>
+          <td>B列のパスを確認。ネットワークドライブの接続状況を確認</td>
+        </tr>
+        <tr>
+          <td>「運用マニュアルを開く」を押しても開かない</td>
+          <td><code>マニュアル_検索ツール.html</code> が同フォルダにない</td>
+          <td>このHTMLファイルを exe と同じフォルダに配置する</td>
+        </tr>
+        <tr>
+          <td>ファイルを開けなかった</td>
+          <td>B列のパスが存在しない、またはアクセス権がない</td>
+          <td>パスとネットワーク接続を確認する</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- 10. 改訂履歴 -->
+  <div class="section" id="history">
+    <h2 class="section-title"><span class="section-num">10</span>改訂履歴</h2>
+    <table class="rev-table">
+      <thead><tr><th>日付</th><th>Rev</th><th>内容</th></tr></thead>
+      <tbody>
+        <tr><td>2024/06/27</td><td>1.00</td><td>新規作成（Excel VBA版）</td></tr>
+        <tr><td>2024/06/28</td><td>1.10</td><td>Split分割で項目別前方一致検索に変更</td></tr>
+        <tr><td>2024/07/03</td><td>1.11</td><td>検索ロジック修正・ワード有で「_」分割数3未満対応</td></tr>
+        <tr><td>2024/08/01</td><td>1.20</td><td>更新日時表示追加・運用マニュアル連携追加</td></tr>
+        <tr><td>2024/09/19</td><td>1.21</td><td>検索条件設定リンク追加</td></tr>
+        <tr><td>2026/05/26</td><td>1.30</td><td>ZIP一括保存機能追加</td></tr>
+        <tr style="background: #eaf3de;">
+          <td><strong>2026/06/03</strong></td>
+          <td><strong>2.00</strong></td>
+          <td><strong>C# WinForms に移行。Excel プロセス非依存化・検索精度改善・ZIP保存安定化</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="doc-footer">
+  荷姿設定書 検索ツール 操作マニュアル — 社内使用限り
+</div>
+
+</body>
+</html>

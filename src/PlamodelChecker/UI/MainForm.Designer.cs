@@ -125,9 +125,9 @@ partial class MainForm
         btnClear.Size    = new Size(60, 28);
         btnClear.Click  += btnClear_Click;
 
-        btnSearch.Text    = "主No.(5)  -  類別No.(3)  -  種別No.(2)　検索";
+        btnSearch.Text    = "検索";
         btnSearch.Location = new Point(226, 120);
-        btnSearch.Size    = new Size(231, 28);
+        btnSearch.Size    = new Size(80, 28);
         btnSearch.Click  += btnSearch_Click;
 
         // ── 検索内容ラベル ─────────────────────────────────────────────────
