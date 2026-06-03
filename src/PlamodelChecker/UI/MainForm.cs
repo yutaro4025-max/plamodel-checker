@@ -192,7 +192,7 @@ public partial class MainForm : Form
         using var dialog = new FolderBrowserDialog
         {
             Description = "ZIP保存先フォルダを選択してください",
-            InitialDirectory = Path.GetDirectoryName(_indexFilePath) ?? ""
+            InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
         };
         if (dialog.ShowDialog(this) != DialogResult.OK) return;
 
