@@ -48,7 +48,7 @@ public partial class MainForm : Form
             var loader = new IndexLoader(_indexFilePath);
             var (records, updateDate) = loader.Load();
             _records = records;
-            lblUpdateDate.Text = $"更新日: {FormatUpdateDate(updateDate)}";
+            lblUpdateDate.Text = $"更新日時：{FormatUpdateDate(updateDate)}";
         }
         catch (IOException ex)
         {
@@ -86,7 +86,7 @@ public partial class MainForm : Form
         foreach (var r in results)
             listBox1.Items.Add(r.Key);
 
-        lblResultCount.Text = $"検索結果: {listBox1.Items.Count} 件";
+        lblResultCount.Text = $"検索件数：{listBox1.Items.Count} 件";
 
         if (listBox1.Items.Count > 0)
         {
@@ -109,8 +109,16 @@ public partial class MainForm : Form
         txtKeyword2.Text = "";
         txtKeyword3.Text = "";
         listBox1.Items.Clear();
-        lblResultCount.Text = "検索結果: 0 件";
+        lblResultCount.Text = "検索件数：0 件";
         txtKeyword1.Focus();
+    }
+
+    // ── 設定（将来実装用）────────────────────────────────────────────────
+
+    private void btnConfig_Click(object sender, EventArgs e)
+    {
+        MessageBox.Show("設定機能は準備中です。", AppConfig.AppTitle,
+            MessageBoxButtons.OK, MessageBoxIcon.Information);
     }
 
     // ── 終了 ────────────────────────────────────────────────────────────
@@ -237,8 +245,7 @@ public partial class MainForm : Form
     private void lnkManual_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
         string exeFolder = AppDomain.CurrentDomain.BaseDirectory;
-        string parentFolder = Directory.GetParent(exeFolder.TrimEnd('\\', '/'))?.FullName ?? exeFolder;
-        string pptPath = Path.Combine(parentFolder, AppConfig.ManualFileName);
+        string pptPath = Path.Combine(exeFolder, AppConfig.ManualFileName);
 
         if (!File.Exists(pptPath))
         {

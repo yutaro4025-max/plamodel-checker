@@ -4,22 +4,24 @@ partial class MainForm
 {
     private System.ComponentModel.IContainer components = null;
 
-    // Controls
-    private Label lblKeyword1 = null!;
-    private Label lblKeyword2 = null!;
-    private Label lblKeyword3 = null!;
+    private GroupBox grpKeyword = null!;
+    private Label lblHakko = null!;
+    private Label lblTorihiki = null!;
+    private Label lblMainNo = null!;
     private TextBox txtKeyword1 = null!;
     private TextBox txtKeyword2 = null!;
     private TextBox txtKeyword3 = null!;
     private CheckBox chkFreeWord = null!;
-    private Button btnSearch = null!;
-    private Button btnClear = null!;
-    private Label lblResultCount = null!;
-    private ListBox listBox1 = null!;
     private Button btnZip = null!;
-    private Button btnClose = null!;
+    private Button btnConfig = null!;
+    private Button btnClear = null!;
+    private Button btnSearch = null!;
+    private Label lblSearchContent = null!;
+    private ListBox listBox1 = null!;
+    private Label lblResultCount = null!;
     private Label lblUpdateDate = null!;
     private LinkLabel lnkManual = null!;
+    private Button btnClose = null!;
 
     protected override void Dispose(bool disposing)
     {
@@ -30,127 +32,152 @@ partial class MainForm
 
     private void InitializeComponent()
     {
-        lblKeyword1  = new Label();
-        lblKeyword2  = new Label();
-        lblKeyword3  = new Label();
+        grpKeyword   = new GroupBox();
+        lblHakko     = new Label();
+        lblTorihiki  = new Label();
+        lblMainNo    = new Label();
         txtKeyword1  = new TextBox();
         txtKeyword2  = new TextBox();
         txtKeyword3  = new TextBox();
         chkFreeWord  = new CheckBox();
-        btnSearch    = new Button();
-        btnClear     = new Button();
-        lblResultCount = new Label();
-        listBox1     = new ListBox();
         btnZip       = new Button();
-        btnClose     = new Button();
+        btnConfig    = new Button();
+        btnClear     = new Button();
+        btnSearch    = new Button();
+        lblSearchContent = new Label();
+        listBox1     = new ListBox();
+        lblResultCount = new Label();
         lblUpdateDate = new Label();
         lnkManual    = new LinkLabel();
+        btnClose     = new Button();
 
+        grpKeyword.SuspendLayout();
         SuspendLayout();
 
         // ── フォーム ──────────────────────────────────────────────────────
-        ClientSize      = new Size(490, 495);
-        Text            = "使用設定書 検索ツール";
+        ClientSize      = new Size(462, 465);
+        Text            = "荷姿設定書 検索ツール";
         Font            = new Font("Meiryo UI", 9F);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox     = false;
         StartPosition   = FormStartPosition.CenterScreen;
 
-        // ── キーワード1 ───────────────────────────────────────────────────
-        lblKeyword1.Text      = "キーワード 1";
-        lblKeyword1.Location  = new Point(10, 16);
-        lblKeyword1.Size      = new Size(90, 23);
-        lblKeyword1.TextAlign = ContentAlignment.MiddleLeft;
+        // ── グループボックス「検索キーワード」 ────────────────────────────
+        grpKeyword.Text     = "検索キーワード";
+        grpKeyword.Location = new Point(5, 5);
+        grpKeyword.Size     = new Size(452, 108);
+        grpKeyword.Controls.AddRange([
+            lblHakko, txtKeyword1,
+            lblTorihiki, txtKeyword2,
+            lblMainNo, txtKeyword3,
+            chkFreeWord,
+        ]);
 
-        txtKeyword1.Location = new Point(105, 13);
-        txtKeyword1.Size     = new Size(270, 23);
+        // 行1: 発行機種 / 取引先コード
+        lblHakko.Text      = "発行機種";
+        lblHakko.Location  = new Point(8, 24);
+        lblHakko.Size      = new Size(60, 23);
+        lblHakko.TextAlign = ContentAlignment.MiddleLeft;
+
+        txtKeyword1.Location = new Point(70, 21);
+        txtKeyword1.Size     = new Size(110, 23);
         txtKeyword1.KeyDown += txt_KeyDown;
 
-        // ── キーワード2 ───────────────────────────────────────────────────
-        lblKeyword2.Text      = "キーワード 2";
-        lblKeyword2.Location  = new Point(10, 46);
-        lblKeyword2.Size      = new Size(90, 23);
-        lblKeyword2.TextAlign = ContentAlignment.MiddleLeft;
+        lblTorihiki.Text      = "取引先コード";
+        lblTorihiki.Location  = new Point(192, 24);
+        lblTorihiki.Size      = new Size(85, 23);
+        lblTorihiki.TextAlign = ContentAlignment.MiddleLeft;
 
-        txtKeyword2.Location = new Point(105, 43);
-        txtKeyword2.Size     = new Size(270, 23);
+        txtKeyword2.Location = new Point(280, 21);
+        txtKeyword2.Size     = new Size(162, 23);
         txtKeyword2.KeyDown += txt_KeyDown;
 
-        // ── キーワード3 ───────────────────────────────────────────────────
-        lblKeyword3.Text      = "キーワード 3";
-        lblKeyword3.Location  = new Point(10, 76);
-        lblKeyword3.Size      = new Size(90, 23);
-        lblKeyword3.TextAlign = ContentAlignment.MiddleLeft;
+        // 行2: 主No ヒント / フリーワード
+        lblMainNo.Text      = "主No.(5)  ─  類別No.(3)  ─  種別No.(2)";
+        lblMainNo.Location  = new Point(8, 52);
+        lblMainNo.Size      = new Size(255, 20);
+        lblMainNo.TextAlign = ContentAlignment.MiddleLeft;
+        lblMainNo.ForeColor = SystemColors.GrayText;
 
-        txtKeyword3.Location = new Point(105, 73);
-        txtKeyword3.Size     = new Size(155, 23);
+        chkFreeWord.Text            = "フリーワード検索";
+        chkFreeWord.Location        = new Point(278, 50);
+        chkFreeWord.Size            = new Size(165, 23);
+        chkFreeWord.CheckedChanged += chkFreeWord_CheckedChanged;
+
+        // 行3: TextBox3
+        txtKeyword3.Location = new Point(8, 76);
+        txtKeyword3.Size     = new Size(255, 23);
         txtKeyword3.KeyDown += txt_KeyDown;
 
-        // ── フリーワードチェックボックス ──────────────────────────────────
-        chkFreeWord.Text             = "フリーワード検索（3）";
-        chkFreeWord.Location         = new Point(268, 74);
-        chkFreeWord.Size             = new Size(210, 23);
-        chkFreeWord.CheckedChanged  += chkFreeWord_CheckedChanged;
-
-        // ── 検索・クリアボタン ─────────────────────────────────────────────
-        btnSearch.Text    = "検索（1）  -  （2）  -  （3）";
-        btnSearch.Location = new Point(10, 108);
-        btnSearch.Size    = new Size(230, 30);
-        btnSearch.Click  += btnSearch_Click;
-
-        btnClear.Text    = "クリア";
-        btnClear.Location = new Point(250, 108);
-        btnClear.Size    = new Size(80, 30);
-        btnClear.Click  += btnClear_Click;
-
-        // ── 検索結果件数 ───────────────────────────────────────────────────
-        lblResultCount.Text      = "検索結果: 0 件";
-        lblResultCount.Location  = new Point(10, 147);
-        lblResultCount.Size      = new Size(470, 20);
-        lblResultCount.TextAlign = ContentAlignment.MiddleLeft;
-
-        // ── リストボックス ─────────────────────────────────────────────────
-        listBox1.Location        = new Point(10, 170);
-        listBox1.Size            = new Size(470, 200);
-        listBox1.ScrollAlwaysVisible = true;
-        listBox1.DoubleClick    += listBox1_DoubleClick;
-
-        // ── ZIPボタン・閉じるボタン ────────────────────────────────────────
+        // ── ボタン行 ──────────────────────────────────────────────────────
         btnZip.Text    = "ZIP 保存";
-        btnZip.Location = new Point(10, 378);
-        btnZip.Size    = new Size(100, 30);
+        btnZip.Location = new Point(5, 120);
+        btnZip.Size    = new Size(80, 28);
         btnZip.Click  += btnZip_Click;
 
-        btnClose.Text    = "閉じる";
-        btnClose.Location = new Point(380, 378);
-        btnClose.Size    = new Size(100, 30);
-        btnClose.Click  += btnClose_Click;
+        btnConfig.Text    = "設定";
+        btnConfig.Location = new Point(92, 120);
+        btnConfig.Size    = new Size(60, 28);
+        btnConfig.Click  += btnConfig_Click;
 
-        // ── 更新日 ─────────────────────────────────────────────────────────
-        lblUpdateDate.Text      = "更新日: -";
-        lblUpdateDate.Location  = new Point(10, 420);
-        lblUpdateDate.Size      = new Size(350, 20);
+        btnClear.Text    = "クリア";
+        btnClear.Location = new Point(159, 120);
+        btnClear.Size    = new Size(60, 28);
+        btnClear.Click  += btnClear_Click;
+
+        btnSearch.Text    = "主No.(5)  -  類別No.(3)  -  種別No.(2)　検索";
+        btnSearch.Location = new Point(226, 120);
+        btnSearch.Size    = new Size(231, 28);
+        btnSearch.Click  += btnSearch_Click;
+
+        // ── 検索内容ラベル ─────────────────────────────────────────────────
+        lblSearchContent.Text      = "検索内容";
+        lblSearchContent.Location  = new Point(5, 155);
+        lblSearchContent.Size      = new Size(100, 20);
+        lblSearchContent.TextAlign = ContentAlignment.MiddleLeft;
+
+        // ── リストボックス ─────────────────────────────────────────────────
+        listBox1.Location           = new Point(5, 175);
+        listBox1.Size               = new Size(452, 185);
+        listBox1.ScrollAlwaysVisible = true;
+        listBox1.DoubleClick        += listBox1_DoubleClick;
+
+        // ── 検索件数 ───────────────────────────────────────────────────────
+        lblResultCount.Text      = "検索件数：";
+        lblResultCount.Location  = new Point(5, 368);
+        lblResultCount.Size      = new Size(230, 20);
+        lblResultCount.TextAlign = ContentAlignment.MiddleLeft;
+
+        // ── 更新日時 ───────────────────────────────────────────────────────
+        lblUpdateDate.Text      = "更新日時：";
+        lblUpdateDate.Location  = new Point(5, 390);
+        lblUpdateDate.Size      = new Size(230, 20);
         lblUpdateDate.TextAlign = ContentAlignment.MiddleLeft;
 
-        // ── 操作マニュアルリンク ───────────────────────────────────────────
-        lnkManual.Text        = "操作マニュアルを開く";
-        lnkManual.Location    = new Point(10, 450);
-        lnkManual.Size        = new Size(470, 20);
+        // ── 運用マニュアル ─────────────────────────────────────────────────
+        lnkManual.Text        = "運用マニュアル";
+        lnkManual.Location    = new Point(250, 375);
+        lnkManual.Size        = new Size(110, 20);
         lnkManual.TextAlign   = ContentAlignment.MiddleLeft;
         lnkManual.LinkClicked += lnkManual_LinkClicked;
 
+        // ── 終了ボタン ─────────────────────────────────────────────────────
+        btnClose.Text    = "終了";
+        btnClose.Location = new Point(372, 368);
+        btnClose.Size    = new Size(85, 40);
+        btnClose.Click  += btnClose_Click;
+
         // ── コントロール追加 ───────────────────────────────────────────────
+        grpKeyword.ResumeLayout(false);
         Controls.AddRange([
-            lblKeyword1, txtKeyword1,
-            lblKeyword2, txtKeyword2,
-            lblKeyword3, txtKeyword3,
-            chkFreeWord,
-            btnSearch, btnClear,
-            lblResultCount,
+            grpKeyword,
+            btnZip, btnConfig, btnClear, btnSearch,
+            lblSearchContent,
             listBox1,
-            btnZip, btnClose,
+            lblResultCount,
             lblUpdateDate,
             lnkManual,
+            btnClose,
         ]);
 
         ResumeLayout(false);
