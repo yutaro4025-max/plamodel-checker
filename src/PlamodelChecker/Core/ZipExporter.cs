@@ -7,14 +7,15 @@ public static class ZipExporter
     public record Result(string ZipPath, int CopiedCount, IReadOnlyList<string> Errors);
 
     /// <summary>
-    /// 検索結果のファイルを一時フォルダにコピーし ZIP 化して保存する。
-    /// System.IO.Compression を使用するため PowerShell 不要。
+    /// 検索結果のファイルを ZIP にまとめて指定パスに保存する。
+    /// zipFilePath はフルパス（例: C:\Users\...\検索結果_20260603.zip）。
     /// </summary>
-    public static Result Export(IEnumerable<IndexRecord> records, string saveFolder)
+    public static Result Export(IEnumerable<IndexRecord> records, string zipFilePath)
     {
-        string zipName = $"検索結果_{DateTime.Now:yyyyMMdd_HHmmss}";
-        string tempFolder = Path.Combine(saveFolder, zipName);
-        string zipPath = tempFolder + ".zip";
+        string tempFolder = Path.Combine(
+            Path.GetDirectoryName(zipFilePath) ?? Path.GetTempPath(),
+            Path.GetFileNameWithoutExtension(zipFilePath) + "_tmp");
+
         var errors = new List<string>();
         int copiedCount = 0;
 
@@ -38,25 +39,27 @@ public static class ZipExporter
             if (copiedCount == 0)
                 return new Result("", 0, errors);
 
-            ZipFile.CreateFromDirectory(tempFolder, zipPath);
+            if (File.Exists(zipFilePath))
+                File.Delete(zipFilePath);
+
+            ZipFile.CreateFromDirectory(tempFolder, zipFilePath);
         }
         finally
         {
             if (Directory.Exists(tempFolder))
             {
-                try { Directory.Delete(tempFolder, true); } catch { /* ベストエフォート */ }
+                try { Directory.Delete(tempFolder, true); } catch { }
             }
         }
 
-        return new Result(zipPath, copiedCount, errors);
+        return new Result(zipFilePath, copiedCount, errors);
     }
 
-    // 同名ファイルが存在する場合は _1, _2 ... でリネーム
     private static string BuildDestPath(string folder, string sourceFile)
     {
         string baseName = Path.GetFileNameWithoutExtension(sourceFile);
-        string ext = Path.GetExtension(sourceFile);
-        string dest = Path.Combine(folder, baseName + ext);
+        string ext      = Path.GetExtension(sourceFile);
+        string dest     = Path.Combine(folder, baseName + ext);
 
         int cnt = 1;
         while (File.Exists(dest))
@@ -64,7 +67,6 @@ public static class ZipExporter
             dest = Path.Combine(folder, $"{baseName}_{cnt}{ext}");
             cnt++;
         }
-
         return dest;
     }
 }

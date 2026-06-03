@@ -189,12 +189,16 @@ public partial class MainForm : Form
             return;
         }
 
-        using var dialog = new FolderBrowserDialog
+        // FolderBrowserDialog は企業環境でハングするため SaveFileDialog を使用
+        string defaultName = $"検索結果_{DateTime.Now:yyyyMMdd_HHmmss}.zip";
+        using var saveDialog = new SaveFileDialog
         {
-            Description = "ZIP保存先フォルダを選択してください",
+            Title       = "ZIP保存先とファイル名を指定してください",
+            Filter      = "ZIPファイル (*.zip)|*.zip",
+            FileName    = defaultName,
             InitialDirectory = Environment.GetFolderPath(Environment.SpecialFolder.Desktop)
         };
-        if (dialog.ShowDialog(this) != DialogResult.OK) return;
+        if (saveDialog.ShowDialog(this) != DialogResult.OK) return;
 
         var targets = listBox1.Items
             .Cast<string>()
@@ -202,25 +206,21 @@ public partial class MainForm : Form
             .OfType<IndexRecord>()
             .ToList();
 
-        // ネットワークコピーがUIスレッドをブロックしないようバックグラウンドで実行
         btnZip.Enabled = false;
         btnZip.Text    = "保存中...";
 
         ZipExporter.Result result;
+        string zipFilePath = saveDialog.FileName;
         try
         {
-            string savePath = dialog.SelectedPath;
-            result = await Task.Run(() => ZipExporter.Export(targets, savePath));
+            result = await Task.Run(() => ZipExporter.Export(targets, zipFilePath));
         }
         catch (Exception ex)
         {
             MessageBox.Show($"ZIP作成中にエラーが発生しました:\n{ex.Message}",
                 "ZIP保存", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            btnZip.Enabled = true;
-            btnZip.Text    = "ZIP 保存";
             return;
         }
-
         finally
         {
             btnZip.Enabled = true;
@@ -242,12 +242,13 @@ public partial class MainForm : Form
         if (result.Errors.Count > 0)
             msg += $"\n\n【注意】スキップされたファイル:\n{string.Join("\n", result.Errors)}";
 
+        string saveFolder = Path.GetDirectoryName(zipFilePath) ?? "";
         if (MessageBox.Show(msg + "\n\n保存先フォルダを開きますか？",
                 "ZIP保存完了", MessageBoxButtons.YesNo, MessageBoxIcon.Information) == DialogResult.Yes)
         {
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
             {
-                FileName = dialog.SelectedPath,
+                FileName = saveFolder,
                 UseShellExecute = true
             });
         }
