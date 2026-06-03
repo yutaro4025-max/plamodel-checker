@@ -180,7 +180,7 @@ public partial class MainForm : Form
 
     // ── ZIP保存 ──────────────────────────────────────────────────────────
 
-    private void btnZip_Click(object sender, EventArgs e)
+    private async void btnZip_Click(object sender, EventArgs e)
     {
         if (listBox1.Items.Count == 0)
         {
@@ -202,16 +202,29 @@ public partial class MainForm : Form
             .OfType<IndexRecord>()
             .ToList();
 
+        // ネットワークコピーがUIスレッドをブロックしないようバックグラウンドで実行
+        btnZip.Enabled = false;
+        btnZip.Text    = "保存中...";
+
         ZipExporter.Result result;
         try
         {
-            result = ZipExporter.Export(targets, dialog.SelectedPath);
+            string savePath = dialog.SelectedPath;
+            result = await Task.Run(() => ZipExporter.Export(targets, savePath));
         }
         catch (Exception ex)
         {
             MessageBox.Show($"ZIP作成中にエラーが発生しました:\n{ex.Message}",
                 "ZIP保存", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            btnZip.Enabled = true;
+            btnZip.Text    = "ZIP 保存";
             return;
+        }
+
+        finally
+        {
+            btnZip.Enabled = true;
+            btnZip.Text    = "ZIP 保存";
         }
 
         if (result.CopiedCount == 0)
