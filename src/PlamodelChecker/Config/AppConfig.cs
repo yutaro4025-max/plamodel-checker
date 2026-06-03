@@ -5,7 +5,7 @@ public static class AppConfig
     public static string AppTitle { get; } = "使用設定書 検索ツール";
 
     // インデックスファイル（exeと同フォルダに配置）
-    public static string IndexFileName { get; } = "使用設定書一覧.xlsm";
+    public static string IndexFileName { get; } = "荷姿設定書検索.xlsm";
 
     // 操作マニュアル（exeの1つ上のフォルダに配置）
     public static string ManualFileName { get; } = "工場設備使用設定書操作マニュアル_1.pptx";

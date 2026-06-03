@@ -14,6 +14,19 @@ public partial class MainForm : Form
         LoadIndex();
     }
 
+    // ── Excelの日付シリアル値を日付文字列に変換 ────────────────────────
+    private static string FormatUpdateDate(string raw)
+    {
+        if (double.TryParse(raw, System.Globalization.NumberStyles.Any,
+                System.Globalization.CultureInfo.InvariantCulture, out double serial)
+            && serial > 1)
+        {
+            try { return DateTime.FromOADate(serial).ToString("yyyy/MM/dd"); }
+            catch { }
+        }
+        return raw;
+    }
+
     // ── 起動時インデックス読み込み ──────────────────────────────────────
 
     private void LoadIndex()
@@ -35,7 +48,7 @@ public partial class MainForm : Form
             var loader = new IndexLoader(_indexFilePath);
             var (records, updateDate) = loader.Load();
             _records = records;
-            lblUpdateDate.Text = $"更新日: {updateDate}";
+            lblUpdateDate.Text = $"更新日: {FormatUpdateDate(updateDate)}";
         }
         catch (IOException ex)
         {
