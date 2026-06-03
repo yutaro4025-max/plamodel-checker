@@ -8,7 +8,7 @@ public static class AppConfig
     public static string IndexFileName { get; } = "荷姿設定書検索.xlsm";
 
     // 操作マニュアル（exeと同フォルダに配置）
-    public static string ManualFileName { get; } = "マニュアル_検索ツール.html";
+    public static string ManualFileName { get; } = "manual.html";
 
     // Sheet1 の列・行定義（1始まり）
     public static int DataSheetIndex { get; } = 1;
