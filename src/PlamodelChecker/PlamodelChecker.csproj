@@ -8,11 +8,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AssemblyName>PlamodelChecker</AssemblyName>
     <RootNamespace>PlamodelChecker</RootNamespace>
-    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="ClosedXML" Version="0.102.3" />
-  </ItemGroup>
+  <!-- 外部NuGetパッケージなし: System.IO.Compression で xlsm を直接読む -->
 
 </Project>

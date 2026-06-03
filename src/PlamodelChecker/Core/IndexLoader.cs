@@ -1,4 +1,3 @@
-using ClosedXML.Excel;
 using PlamodelChecker.Config;
 
 namespace PlamodelChecker.Core;
@@ -12,28 +11,19 @@ public class IndexLoader
         _filePath = filePath;
     }
 
+    /// <summary>
+    /// xlsm/xlsx をExcelプロセス不要で読み込む（NuGetパッケージ不使用）。
+    /// </summary>
     public (List<IndexRecord> Records, string UpdateDate) Load()
     {
-        var records = new List<IndexRecord>();
+        var (rows, updateDate) = SimpleXlsxReader.Read(_filePath, AppConfig.DataSheetIndex);
 
-        // ClosedXML は読み取り専用で開くため Excel プロセスに依存しない
-        using var workbook = new XLWorkbook(_filePath);
-        var sheet = workbook.Worksheet(AppConfig.DataSheetIndex);
-
-        string updateDate = sheet
-            .Cell(AppConfig.UpdateDateRow, AppConfig.UpdateDateCol)
-            .GetString();
-
-        int lastRow = sheet.LastRowUsed()?.RowNumber() ?? AppConfig.DataStartRow - 1;
-
-        for (int row = AppConfig.DataStartRow; row <= lastRow; row++)
-        {
-            string key = sheet.Cell(row, AppConfig.KeyColumn).GetString().Trim();
-            if (string.IsNullOrEmpty(key)) continue;
-
-            string path = sheet.Cell(row, AppConfig.PathColumn).GetString().Trim();
-            records.Add(new IndexRecord(key, path));
-        }
+        var records = rows
+            .Select(r => new IndexRecord(
+                Key: r.Length > 0 ? r[0] : "",
+                FilePath: r.Length > 1 ? r[1] : ""))
+            .Where(r => !string.IsNullOrEmpty(r.Key))
+            .ToList();
 
         return (records, updateDate);
     }
