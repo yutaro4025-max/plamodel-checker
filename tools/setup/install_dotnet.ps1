@@ -4,26 +4,53 @@
 $ErrorActionPreference = "Stop"
 $host.UI.RawUI.WindowTitle = ".NET 8 セットアップ"
 
+# ─────────────────────────────────────────────
+# ログ設定（スクリプトと同フォルダに出力）
+# ─────────────────────────────────────────────
+$LogFile = Join-Path $PSScriptRoot "setup_log.txt"
+
+function Write-Log($level, $msg) {
+    $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+    $line = "$timestamp [$level] $msg"
+    Add-Content -Path $LogFile -Value $line -Encoding UTF8
+}
+
 function Write-Step($msg) {
     Write-Host ""
     Write-Host ">>> $msg" -ForegroundColor Cyan
+    Write-Log "INFO" $msg
 }
 
 function Write-Ok($msg) {
     Write-Host "    [OK] $msg" -ForegroundColor Green
+    Write-Log "OK  " $msg
 }
 
 function Write-Warn($msg) {
     Write-Host "    [!!] $msg" -ForegroundColor Yellow
+    Write-Log "WARN" $msg
 }
 
 function Write-Err($msg) {
     Write-Host "    [NG] $msg" -ForegroundColor Red
+    Write-Log "ERR " $msg
 }
 
 # ─────────────────────────────────────────────
 # 1. 管理者権限チェック
 # ─────────────────────────────────────────────
+# ─────────────────────────────────────────────
+# ログ開始ヘッダー
+# ─────────────────────────────────────────────
+$separator = "=" * 60
+Add-Content -Path $LogFile -Value "" -Encoding UTF8
+Add-Content -Path $LogFile -Value $separator -Encoding UTF8
+Add-Content -Path $LogFile -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [INFO] セットアップ開始" -Encoding UTF8
+Add-Content -Path $LogFile -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [INFO] 実行ユーザー: $env:USERDOMAIN\$env:USERNAME" -Encoding UTF8
+Add-Content -Path $LogFile -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [INFO] コンピューター: $env:COMPUTERNAME" -Encoding UTF8
+Add-Content -Path $LogFile -Value "$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss') [INFO] OS: $([System.Environment]::OSVersion.VersionString)" -Encoding UTF8
+Add-Content -Path $LogFile -Value $separator -Encoding UTF8
+
 Write-Step "管理者権限を確認しています..."
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
@@ -64,6 +91,7 @@ if ($alreadyInstalled) {
     Write-Host "  .NET 8 Desktop Runtime は既にインストール済みです。" -ForegroundColor Green
     Write-Host "  PlamodelChecker.exe をそのまま実行できます。"
     Write-Host ""
+    Write-Log "INFO" "セットアップ終了（インストール不要）"
     Read-Host "Enterキーで終了"
     exit 0
 }
@@ -127,6 +155,7 @@ try {
             Write-Host "  手動でインストーラーを実行してみてください。"
             Write-Host "  インストーラーの場所: $installer"
             Write-Host ""
+            Write-Log "ERR " "セットアップ終了（インストール失敗 ExitCode=$($proc.ExitCode)）"
             Read-Host "Enterキーで終了"
             exit 1
         }
@@ -150,5 +179,8 @@ Write-Host "  セットアップ完了！" -ForegroundColor Green
 Write-Host "  PlamodelChecker.exe をダブルクリックして起動してください。" -ForegroundColor Green
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
 Write-Host ""
+Write-Host "  ログファイル: $LogFile" -ForegroundColor Gray
+
+Write-Log "INFO" "セットアップ終了（インストール成功）"
 
 Read-Host "Enterキーで終了"
