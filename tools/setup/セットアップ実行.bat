@@ -30,7 +30,7 @@ if errorlevel 1 goto :not_found
 
 :: インストール済み
 echo [OK] .NET 8 Desktop Runtime は既にインストール済みです。
-echo     PlamodelChecker.exe をそのまま実行できます。
+echo     ツールをそのまま起動できます。
 set DT=%date% %time: =0%
 echo %DT% [OK] 終了（インストール不要） >> "%LOGFILE%"
 echo.
