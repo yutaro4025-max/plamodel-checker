@@ -1,5 +1,4 @@
 @echo off
-chcp 65001 > nul
 title .NET 8 セットアップ
 
 set LOGFILE=%~dp0setup_log.txt
@@ -106,7 +105,7 @@ goto :done
 echo.
 echo ================================================
 echo   セットアップ完了!
-echo   PlamodelChecker.exe をダブルクリックして起動
+echo   起動: PlamodelChecker.exe
 echo ================================================
 echo   ログ: %LOGFILE%
 echo.
