@@ -8,6 +8,11 @@ public partial class MainForm : Form
     private List<IndexRecord> _records = [];
     private string _indexFilePath = "";
 
+    // 単一ファイル発行でも正しくexeの場所を返す
+    private static string ExeFolder =>
+        Path.GetDirectoryName(Environment.ProcessPath ?? "") is { Length: > 0 } d
+            ? d : AppDomain.CurrentDomain.BaseDirectory;
+
     public MainForm()
     {
         InitializeComponent();
@@ -31,7 +36,7 @@ public partial class MainForm : Form
 
     private void LoadIndex()
     {
-        string exeFolder = AppDomain.CurrentDomain.BaseDirectory;
+        string exeFolder = ExeFolder;
         _indexFilePath = Path.Combine(exeFolder, AppConfig.IndexFileName);
 
         if (!File.Exists(_indexFilePath))
@@ -258,7 +263,7 @@ public partial class MainForm : Form
 
     private void lnkManual_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
     {
-        string exeFolder = AppDomain.CurrentDomain.BaseDirectory;
+        string exeFolder = ExeFolder;
         string pptPath = Path.Combine(exeFolder, AppConfig.ManualFileName);
 
         if (!File.Exists(pptPath))

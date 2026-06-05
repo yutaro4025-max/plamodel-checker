@@ -9,14 +9,11 @@ Write-Host ""
 Write-Host "PlamodelChecker リリースビルド" -ForegroundColor Cyan
 Write-Host "================================"
 
-# ビルド実行
+# ビルド実行（単一ファイル・フレームワーク依存）
 Write-Host "ビルド中..." -ForegroundColor Yellow
 & $dotnet publish $project `
     -c Release `
-    --framework net8.0-windows `
-    --self-contained false `
     -p:PublishSingleFile=true `
-    -p:EnableCompressionInSingleFile=false `
     -o $output
 
 if ($LASTEXITCODE -ne 0) {
@@ -39,6 +36,6 @@ Write-Host "    PlamodelChecker.exe     ← メイン実行ファイル（小さ
 Write-Host "    荷姿設定書検索.xlsm      ← ここに配置"
 Write-Host "    manual.html             ← ここに配置"
 Write-Host "    セットアップ実行.bat      ← .NET未導入PC用"
-Write-Host "    install_dotnet.ps1      ← セットアップ実行.batが呼び出す"
+Write-Host "    セットアップ実行.bat      ← .NET未導入PC用（install_dotnet.ps1は不要）"
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Green
 Write-Host ""

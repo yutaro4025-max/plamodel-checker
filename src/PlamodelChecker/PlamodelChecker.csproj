@@ -10,6 +10,12 @@
     <RootNamespace>PlamodelChecker</RootNamespace>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(PublishSingleFile)'=='true'">
+    <SelfContained>false</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+  </PropertyGroup>
+
   <!-- 外部NuGetパッケージなし: System.IO.Compression で xlsm を直接読む -->
 
 </Project>
