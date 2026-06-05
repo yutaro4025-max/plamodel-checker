@@ -1,4 +1,4 @@
-# =============================================================================
+﻿# =============================================================================
 # WeeklyReport.ps1
 # 役割    : 週次振り返りHTMLレポート生成
 # 実行方式: Script-Aが金曜日のみ退勤60分前に動的登録
@@ -206,7 +206,10 @@ function Get-AttendanceData {
         $totalWorkMin     += $workMin
         $totalOvertimeMin += $overtimeMin
 
-        if ($null -eq $latestEnd -or $actualEnd -gt $latestEnd) {
+        # 日付を含まず時刻のみで比較する（金曜は日付が最新になるため日時比較では常に金曜が選ばれる）
+        $actualEndMin = $actualEnd.Hour * 60 + $actualEnd.Minute
+        $latestEndMin = if ($null -eq $latestEnd) { -1 } else { $latestEnd.Hour * 60 + $latestEnd.Minute }
+        if ($actualEndMin -gt $latestEndMin) {
             $latestEnd     = $actualEnd
             $latestEndDate = $row.Date
         }
@@ -254,17 +257,21 @@ function Get-OutlookData {
         $items.IncludeRecurrences = $true
         $items.Sort("[Start]")
 
+        # IncludeRecurrences=true の場合 [End] フィルターは定期予定に効かないため [Start] のみで絞る
         $startStr = $WeekRange.Start.ToString("yyyy/MM/dd HH:mm")
         $endStr   = $WeekRange.End.ToString("yyyy/MM/dd HH:mm")
-        $filter   = "[Start] >= '$startStr' AND [End] <= '$endStr'"
+        $filter   = "[Start] >= '$startStr' AND [Start] <= '$endStr'"
+        Write-Log "Outlookフィルター: $filter"
         $filtered = $items.Restrict($filter)
 
+        $itemCount = 0
+
         $catHours  = @{}
-        $catEvents = @{}   # カテゴリ別イベント詳細（TOP3表示用）
-        $blockMin  = 0
+        $catEvents = @{}
 
         foreach ($item in $filtered) {
             try {
+                $itemCount++
                 $durationMin = ($item.End - $item.Start).TotalMinutes
                 $cat = $item.Categories
                 if ([string]::IsNullOrWhiteSpace($cat)) { $cat = "未分類" }
@@ -272,11 +279,9 @@ function Get-OutlookData {
                 # 複数カテゴリ対応（カンマ区切り）
                 $cats = $cat -split "," | ForEach-Object { $_.Trim() }
                 foreach ($c in $cats) {
-                    # カテゴリ別合計時間
                     if (-not $catHours.ContainsKey($c)) { $catHours[$c] = 0 }
                     $catHours[$c] += $durationMin
 
-                    # カテゴリ別イベント詳細を収集
                     if (-not $catEvents.ContainsKey($c)) { $catEvents[$c] = @() }
                     $subj = if ([string]::IsNullOrWhiteSpace($item.Subject)) { "（件名なし）" } else { $item.Subject }
                     $catEvents[$c] += @{
@@ -285,19 +290,16 @@ function Get-OutlookData {
                         DurationMin = [Math]::Round($durationMin)
                     }
                 }
-
-                # 非公開予定＝作業ブロック
-                if ($item.Sensitivity -eq 2) {
-                    $blockMin += $durationMin
-                }
             } catch {}
         }
 
-        # カテゴリ別時間（時間単位に変換）＋イベント詳細を返す
-        $result = @{
-            BlockHour = [Math]::Round($blockMin / 60, 1)
-            Events    = $catEvents
+        Write-Log "処理したイベント数: $itemCount / カテゴリ種別数: $($catHours.Keys.Count)"
+        if ($catHours.Keys.Count -gt 0) {
+            foreach ($k in $catHours.Keys) { Write-Log "  [$k] $([Math]::Round($catHours[$k]/60,1))h" }
         }
+
+        # カテゴリ別時間（時間単位に変換）＋イベント詳細を返す
+        $result = @{ Events = $catEvents }
         foreach ($key in $catHours.Keys) {
             $result[$key] = [Math]::Round($catHours[$key] / 60, 1)
         }
@@ -470,8 +472,6 @@ function Build-HtmlReport {
     $learnH   = Get-CatHour $CAT_LEARNING
     $fixedH   = Get-CatHour $CAT_FIXED
     $holidayH = Get-CatHour $CAT_HOLIDAY
-    $blockH   = if ($null -ne $OutlookData) { $OutlookData.BlockHour } else { 0.0 }
-
     $overtimeH = if ($null -ne $Attendance) { $Attendance.TotalOvertimeHour } else { 0.0 }
     $workDays  = if ($null -ne $Attendance) { $Attendance.WorkDays } else { 0 }
     $workH     = if ($null -ne $Attendance) { $Attendance.TotalWorkHour } else { 0.0 }
@@ -488,8 +488,6 @@ function Build-HtmlReport {
     $cmtLearn    = Get-Comment "Learn"    $learnH
     $cmtFixed    = Get-Comment "Fixed"    $fixedH   2.0
     $cmtHoliday  = Get-Comment "Holiday"  $holidayH
-    $cmtBlock    = Get-Comment "Block"    $blockH
-
     # 日別棒グラフ用データ
     $barData = ""
     if ($null -ne $Attendance -and $Attendance.Details.Count -gt 0) {
@@ -619,15 +617,6 @@ td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:top;}
     </table>
     <div class="note-box">※ カレンダー予定は重複登録があるため、カテゴリ合計が実働時間を超える場合があります。</div>
   </div>
-</div>
-
-<!-- 集中作業時間 -->
-<div class="section">
-  <div class="section-title">🔒 集中作業時間（カレンダーブロック）</div>
-  <div class="metrics">
-    <div class="metric"><div class="metric-label">作業ブロック時間</div><div class="metric-value $(if($blockH -lt $TH.Block_Low){'warn'}else{'ok'})">${blockH}h</div></div>
-  </div>
-  <div class="comment-box">💬 $cmtBlock</div>
 </div>
 
 <!-- 翌週メモ -->
